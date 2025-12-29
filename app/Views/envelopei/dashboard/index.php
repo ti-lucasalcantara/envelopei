@@ -120,7 +120,25 @@
                         <label class="form-label">Descrição</label>
                         <input type="text" class="form-control" id="recDesc" placeholder="Salário, extra, etc.">
                     </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Rateio pré-definido</label>
+                        <div class="d-flex flex-column flex-md-row gap-2">
+                            <select class="form-select" id="recRateioModelo">
+                                <option value="">— Rateio manual —</option>
+                            </select>
+
+                            <button class="btn btn-outline-primary" type="button" id="btnAplicarRateio">
+                                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Aplicar
+                            </button>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            Selecione um modelo para preencher automaticamente o rateio por envelope.
+                        </div>
+                    </div>
                 </div>
+
+
 
                 <hr class="my-3">
 
@@ -261,6 +279,7 @@
 <script>
     let cacheEnvelopes = [];
     let cacheContas = [];
+    let cacheRateiosModelo = [];
 
     function opt(valor, texto) {
         return `<option value="${valor}">${texto}</option>`;
@@ -325,6 +344,63 @@
         preencherSelects();
     }
 
+    async function carregarRateiosModelo() {
+        const r = await Envelopei.api('api/rateios-modelo', 'GET');
+        if (!r?.success) {
+            Envelopei.toast(r?.message ?? 'Falha ao carregar rateios.', 'danger');
+            return;
+        }
+
+        cacheRateiosModelo = r.data ?? [];
+
+        const opts = [
+            `<option value="">— Rateio manual —</option>`,
+            ...cacheRateiosModelo.map(m =>
+                `<option value="${m.RateioModeloId}">
+                    ${m.Nome}${Number(m.Padrao) === 1 ? ' (padrão)' : ''}
+                </option>`
+            )
+        ];
+
+        document.getElementById('recRateioModelo').innerHTML = opts.join('');
+    }
+
+    async function aplicarRateioModelo() {
+        const id = Number($('#recRateioModelo').val() || 0);
+
+        if (!id) {
+            Envelopei.toast('Selecione um modelo de rateio.', 'warning');
+            return;
+        }
+
+        const r = await Envelopei.api(`api/rateios-modelo/${id}`, 'GET');
+        if (!r?.success) {
+            Envelopei.toast(r?.message ?? 'Falha ao carregar modelo.', 'danger');
+            return;
+        }
+
+        const itens = r.data?.Itens ?? [];
+        if (itens.length === 0) {
+            Envelopei.toast('Modelo não possui itens.', 'warning');
+            return;
+        }
+
+        // limpa rateio atual
+        $('#tbRateio').html('');
+
+        itens.forEach(i => {
+            addLinhaRateioComDados(
+                i.EnvelopeId,
+                i.ModoRateio,
+                i.Valor
+            );
+        });
+
+        calcSomaRateio();
+    }
+
+
+
     function preencherSelects() {
         // contas
         const contasHtml = cacheContas.map(c => opt(c.ContaId, `${c.Nome} (${Envelopei.money(c.SaldoAtual)})`)).join('');
@@ -337,9 +413,8 @@
         $('#trEnvOrigem').html(`<option value="">Selecione...</option>${envHtml}`);
         $('#trEnvDestino').html(`<option value="">Selecione...</option>${envHtml}`);
 
-        // rateio table começa com 2 linhas
+        // rateio table começa com 1 linha
         $('#tbRateio').html('');
-        addLinhaRateio();
         addLinhaRateio();
         calcSomaRateio();
     }
@@ -379,6 +454,46 @@
         row.querySelector('.rateio-valor').addEventListener('input', calcSomaRateio);
         row.querySelector('.rateio-modo').addEventListener('change', calcSomaRateio);
     }
+
+    function addLinhaRateioComDados(envelopeId, modo, valor) {
+        const envOptions = cacheEnvelopes.map(e =>
+            `<option value="${e.EnvelopeId}" ${e.EnvelopeId == envelopeId ? 'selected' : ''}>${e.Nome}</option>`
+        ).join('');
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <select class="form-select form-select-sm rateio-envelope">
+                    ${envOptions}
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm rateio-modo">
+                    <option value="valor" ${modo === 'valor' ? 'selected' : ''}>Valor</option>
+                    <option value="percentual" ${modo === 'percentual' ? 'selected' : ''}>%</option>
+                </select>
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control form-control-sm rateio-valor" value="${valor}">
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger btnRemoveRateio">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        `;
+
+        row.querySelector('.btnRemoveRateio').addEventListener('click', () => {
+            row.remove();
+            calcSomaRateio();
+        });
+
+        row.querySelector('.rateio-valor').addEventListener('input', calcSomaRateio);
+        row.querySelector('.rateio-modo').addEventListener('change', calcSomaRateio);
+
+        document.getElementById('tbRateio').appendChild(row);
+    }
+
 
     function calcSomaRateio() {
         const total = Array.from(document.querySelectorAll('.rateio-valor'))
@@ -431,24 +546,45 @@
     }
 
     async function salvarReceita() {
-        const ContaId = Number($('#recConta').val() || 0);
+        const ContaId        = Number($('#recConta').val() || 0);
         const DataLancamento = $('#recData').val();
-        const ValorTotal = Number($('#recValor').val() || 0);
-        const Descricao = $('#recDesc').val();
+        const ValorTotal     = Number($('#recValor').val() || 0);
+        const Descricao      = ($('#recDesc').val() || '').trim();
+
+        // ✅ novo: modelo de rateio (opcional)
+        const RateioModeloId = Number($('#recRateioModelo').val() || 0);
 
         if (!ContaId) return Envelopei.toast('Selecione a conta.', 'danger');
         if (!ValorTotal || ValorTotal <= 0) return Envelopei.toast('Informe o valor total.', 'danger');
 
-        const Rateios = Array.from(document.querySelectorAll('#tbRateio tr')).map(tr => {
-            const EnvelopeId = Number(tr.querySelector('.rateio-envelope').value || 0);
-            const ModoRateio = tr.querySelector('.rateio-modo').value;
-            const ValorInformado = Number(tr.querySelector('.rateio-valor').value || 0);
-            return { EnvelopeId, ModoRateio, ValorInformado };
-        }).filter(r => r.EnvelopeId && r.ValorInformado > 0);
+        // Se NÃO escolheu modelo, exige rateio manual (como era antes)
+        let Rateios = [];
+        if (!RateioModeloId) {
+            Rateios = Array.from(document.querySelectorAll('#tbRateio tr')).map(tr => {
+                const EnvelopeId     = Number(tr.querySelector('.rateio-envelope')?.value || 0);
+                const ModoRateio     = tr.querySelector('.rateio-modo')?.value || 'valor';
+                const ValorInformado = Number(tr.querySelector('.rateio-valor')?.value || 0);
 
-        if (Rateios.length === 0) return Envelopei.toast('Informe o rateio.', 'danger');
+                return { EnvelopeId, ModoRateio, ValorInformado };
+            }).filter(r => r.EnvelopeId && r.ValorInformado > 0);
 
-        const r = await Envelopei.api('api/receitas', 'POST', { ContaId, DataLancamento, ValorTotal, Descricao, Rateios });
+            if (Rateios.length === 0) return Envelopei.toast('Informe o rateio ou selecione um modelo.', 'danger');
+        }
+
+        const payload = {
+            ContaId,
+            DataLancamento,
+            ValorTotal,
+            Descricao
+        };
+
+        if (RateioModeloId) {
+            payload.RateioModeloId = RateioModeloId; // ✅ backend busca e aplica o modelo
+        } else {
+            payload.Rateios = Rateios; // ✅ rateio manual
+        }
+
+        const r = await Envelopei.api('api/receitas', 'POST', payload);
 
         if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao salvar receita.', 'danger');
 
@@ -456,6 +592,7 @@
         bootstrap.Modal.getInstance(document.getElementById('modalReceita')).hide();
         await carregarResumo();
     }
+
 
     async function salvarDespesa() {
         const ContaId = Number($('#desConta').val() || 0);
@@ -501,11 +638,13 @@
     document.addEventListener('DOMContentLoaded', () => {
         setHoje();
         carregarResumo();
+        carregarRateiosModelo();
 
         document.getElementById('btnAddRateio').addEventListener('click', addLinhaRateio);
         document.getElementById('btnSalvarReceita').addEventListener('click', salvarReceita);
         document.getElementById('btnSalvarDespesa').addEventListener('click', salvarDespesa);
         document.getElementById('btnSalvarTransferencia').addEventListener('click', salvarTransferencia);
+        document.getElementById('btnAplicarRateio').addEventListener('click', aplicarRateioModelo);
 
         $('#recValor').on('input', calcSomaRateio);
     });

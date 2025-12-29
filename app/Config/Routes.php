@@ -40,6 +40,7 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('envelopes',   'EnvelopeiWeb::envelopes');
         $routes->get('contas',      'EnvelopeiWeb::contas');
         $routes->get('lancamentos', 'EnvelopeiWeb::lancamentos');
+        $routes->get('rateios', 'EnvelopeiWeb::rateios');
     });
 });
 
@@ -97,5 +98,15 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
         // DASHBOARD
         $routes->get('dashboard/resumo', 'DashboardController::resumo');
+
+        // RATEIO PRÉ-DEFINIDO (MODELOS)
+        $routes->get('rateios-modelo', 'RateioModeloController::index');                // lista modelos
+        $routes->get('rateios-modelo/padrao', 'RateioModeloController::padrao');        // pega modelo padrão
+        $routes->get('rateios-modelo/(:num)', 'RateioModeloController::show/$1');       // detalhe + itens
+        $routes->post('rateios-modelo', 'RateioModeloController::store');              // cria modelo + itens
+        $routes->put('rateios-modelo/(:num)', 'RateioModeloController::update/$1');    // atualiza modelo + itens
+        $routes->delete('rateios-modelo/(:num)', 'RateioModeloController::delete/$1'); // desativa modelo
+        $routes->post('rateios-modelo/(:num)/definir-padrao', 'RateioModeloController::definirPadrao/$1'); // set padrão
+
     });
 });

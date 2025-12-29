@@ -11,21 +11,17 @@
 
                 <div class="mb-3">
                     <label class="form-label">E-mail</label>
-                    <input type="email" class="form-control" id="Email" value="lucas@teste.com">
+                    <input type="email" class="form-control" id="Email">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Senha</label>
-                    <input type="password" class="form-control" id="Senha" value="2212">
+                    <input type="password" class="form-control" id="Senha">
                 </div>
 
                 <button class="btn btn-primary w-100" id="btnLogin">
                     <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
                 </button>
-
-                <div class="text-muted mt-3 small">
-                    Seed padrão: <span class="text-mono">lucas@teste.com / 2212</span>
-                </div>
             </div>
         </div>
     </div>

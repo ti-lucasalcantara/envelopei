@@ -12,23 +12,23 @@ class EnvelopeiSeeder extends Seeder
 
         // evita duplicar seed
         $usuarioExistente = $db->table('tb_usuarios')
-            ->where('Email', 'lucas@teste.com')
+            ->where('Email', 'ti.lucasalcantara@gmail.com')
             ->get()
             ->getRowArray();
 
         if ($usuarioExistente) {
-            echo "Usuário já existe: lucas@teste.com (UsuarioId {$usuarioExistente['UsuarioId']})\n";
+            echo "Usuário já existe: ti.lucasalcantara@gmail.com (UsuarioId {$usuarioExistente['UsuarioId']})\n";
             return;
         }
 
         $agora = date('Y-m-d H:i:s');
 
         // 1) Usuário
-        $senhaHash = password_hash('2212', PASSWORD_DEFAULT);
+        $senhaHash = password_hash('@la159357**', PASSWORD_DEFAULT);
 
         $db->table('tb_usuarios')->insert([
-            'Nome'       => 'Lucas',
-            'Email'      => 'lucas@teste.com',
+            'Nome'       => 'Lucas Alcântara',
+            'Email'      => 'ti.lucasalcantara@gmail.com',
             'SenhaHash'  => $senhaHash,
             'Ativo'      => 1,
             'DataCriacao'=> $agora,
@@ -56,7 +56,7 @@ class EnvelopeiSeeder extends Seeder
             ],
             [
                 'UsuarioId'    => $usuarioId,
-                'Nome'         => 'Reserva (Poupança)',
+                'Nome'         => 'CEF (Poupança)',
                 'TipoConta'    => 'poupanca',
                 'SaldoInicial' => 0.00,
                 'Ativa'        => 1,
@@ -92,6 +92,6 @@ class EnvelopeiSeeder extends Seeder
 
         $db->table('tb_envelopes')->insertBatch($payloadEnvelopes);
 
-        echo "Seed concluído! UsuarioId: {$usuarioId} | Email: lucas@teste.com | Senha: 2212\n";
+        echo "Seed concluído! UsuarioId: {$usuarioId} | Email: ti.lucasalcantara@gmail.com | Senha: 1\n";
     }
 }

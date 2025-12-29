@@ -56,4 +56,12 @@ class EnvelopeiWeb extends BaseController
             'titulo' => 'Envelopei - Lançamentos',
         ]);
     }
+
+    public function rateios()
+    {
+        return $this->view('envelopei/rateios_modelo/index', [
+            'titulo' => 'Envelopei - Rateio Pré-definido',
+        ]);
+    }
+
 }

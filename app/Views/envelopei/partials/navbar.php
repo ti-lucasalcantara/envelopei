@@ -14,14 +14,20 @@
                     <a class="nav-link" href="<?= base_url('dashboard') ?>"><i class="fa-solid fa-chart-pie me-2"></i>Dashboard</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="<?= base_url('lancamentos') ?>"><i class="fa-solid fa-receipt me-2"></i>Lançamentos</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('envelopes') ?>"><i class="fa-solid fa-inbox me-2"></i>Envelopes</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('contas') ?>"><i class="fa-solid fa-building-columns me-2"></i>Contas</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('lancamentos') ?>"><i class="fa-solid fa-receipt me-2"></i>Lançamentos</a>
+                    <a class="nav-link" href="<?= base_url('rateios') ?>">
+                        <i class="fa-solid fa-percent me-2"></i>Rateio Padrão
+                    </a>
                 </li>
+
             </ul>
 
             <div class="d-flex gap-2">
