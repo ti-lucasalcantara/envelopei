@@ -21,6 +21,11 @@
         .badge-soft { background: rgba(13,110,253,.1); color: #0d6efd; border: 1px solid rgba(13,110,253,.2); }
         .text-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
         .cursor-pointer { cursor: pointer; }
+        /* Marcador de linha: apenas borda à esquerda (sem pintar a TR inteira) */
+        .tr-marker-success { border-left: 4px solid var(--bs-success) !important; }
+        .tr-marker-danger { border-left: 4px solid var(--bs-danger) !important; }
+        .tr-marker-warning { border-left: 4px solid var(--bs-warning) !important; }
+        .tr-marker-secondary { border-left: 4px solid var(--bs-secondary) !important; }
     </style>
 
     <?= $this->renderSection('css') ?>
@@ -75,6 +80,16 @@
         money(v) {
             const n = Number(v ?? 0);
             return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+        },
+
+        /** Formata data ISO (YYYY-mm-dd) para pt-BR (dd/mm/YYYY). Retorna '-' se vazio/inválido. */
+        dateBR(v) {
+            if (v == null || v === '') return '—';
+            const s = String(v).trim();
+            if (!s) return '—';
+            const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+            return s;
         },
 
         toast(msg, type='primary') {

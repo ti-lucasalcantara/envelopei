@@ -38,9 +38,16 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->group('', ['filter' => 'authEnvelopei'], function ($routes) {
         $routes->get('dashboard',   'EnvelopeiWeb::dashboard');
         $routes->get('envelopes',   'EnvelopeiWeb::envelopes');
+        $routes->get('envelopes/(:num)/extrato', 'EnvelopeiWeb::envelopeExtrato/$1');
         $routes->get('contas',      'EnvelopeiWeb::contas');
         $routes->get('lancamentos', 'EnvelopeiWeb::lancamentos');
         $routes->get('rateios', 'EnvelopeiWeb::rateios');
+        $routes->get('cartoes', 'EnvelopeiWeb::cartoes');
+        $routes->get('faturas', 'EnvelopeiWeb::faturas');
+        $routes->get('faturas/(:num)', 'EnvelopeiWeb::faturaDetalhe/$1');
+        $routes->get('receitas/nova', 'EnvelopeiWeb::novaReceita');
+        $routes->get('despesas/nova', 'EnvelopeiWeb::novaDespesa');
+        $routes->get('transferencias/nova', 'EnvelopeiWeb::novaTransferencia');
     });
 });
 
@@ -87,6 +94,22 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->get('lancamentos', 'LancamentoController::index');
         $routes->get('lancamentos/(:num)', 'LancamentoController::show/$1');
         $routes->delete('lancamentos/(:num)', 'LancamentoController::delete/$1');
+
+        // CARTÕES DE CRÉDITO
+        $routes->get('cartoes-credito', 'CartaoCreditoController::index');
+        $routes->post('cartoes-credito', 'CartaoCreditoController::store');
+        $routes->get('cartoes-credito/(:num)', 'CartaoCreditoController::show/$1');
+        $routes->put('cartoes-credito/(:num)', 'CartaoCreditoController::update/$1');
+        $routes->delete('cartoes-credito/(:num)', 'CartaoCreditoController::delete/$1');
+
+        // FATURAS
+        $routes->get('faturas', 'FaturaController::index');
+        $routes->get('faturas/proximas', 'FaturaController::proximasAVencer');
+        $routes->get('faturas/(:num)', 'FaturaController::show/$1');
+        $routes->post('faturas/(:num)/pagar', 'FaturaController::pagar/$1');
+        $routes->post('faturas/(:num)/desfazer', 'FaturaController::desfazerPagar/$1');
+        $routes->post('faturas/item/(:num)/pagar', 'FaturaController::pagarItem/$1');
+        $routes->post('faturas/item/pagamento/(:num)/desfazer', 'FaturaController::desfazerItemPagamento/$1');
 
         // RECEITAS / DESPESAS
         $routes->post('receitas', 'ReceitaController::store');

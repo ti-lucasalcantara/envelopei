@@ -23,6 +23,12 @@
                     <a class="nav-link" href="<?= base_url('contas') ?>"><i class="fa-solid fa-building-columns me-2"></i>Contas</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="<?= base_url('cartoes') ?>"><i class="fa-solid fa-credit-card me-2"></i>Cartões</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?= base_url('faturas') ?>"><i class="fa-solid fa-file-invoice me-2"></i>Faturas</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('rateios') ?>">
                         <i class="fa-solid fa-percent me-2"></i>Rateio Padrão
                     </a>

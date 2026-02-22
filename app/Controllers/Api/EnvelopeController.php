@@ -13,8 +13,13 @@ class EnvelopeController extends BaseApiController
         $uid = $this->requireUsuarioId($p);
         if (!$uid) return $this->fail('Usuário não informado.', [], 401);
 
+        $incluirInativos = $this->request->getGet('IncluirInativos') ?? $p['IncluirInativos'] ?? null;
+        $todos = filter_var($incluirInativos, FILTER_VALIDATE_BOOLEAN);
+
         $model = new EnvelopeModel();
-        return $this->ok($model->saldosPorUsuario($uid));
+        $lista = $todos ? $model->listarTodosComSaldos($uid) : $model->saldosPorUsuario($uid);
+
+        return $this->ok($lista);
     }
 
     public function show($id)

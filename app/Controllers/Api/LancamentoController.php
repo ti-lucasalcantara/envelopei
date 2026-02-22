@@ -6,6 +6,7 @@ use App\Models\Envelopei\LancamentoModel;
 use App\Models\Envelopei\ItemContaModel;
 use App\Models\Envelopei\ItemEnvelopeModel;
 use App\Models\Envelopei\RateioReceitaModel;
+use App\Models\Envelopei\FaturaModel;
 
 class LancamentoController extends BaseApiController
 {
@@ -74,6 +75,8 @@ class LancamentoController extends BaseApiController
             return $this->fail('Lançamento não encontrado.', [], 404);
         }
 
+        $faturaId = !empty($l['FaturaId']) ? (int)$l['FaturaId'] : null;
+
         $db = db_connect();
         $db->transStart();
 
@@ -84,6 +87,10 @@ class LancamentoController extends BaseApiController
 
         // apaga o lançamento
         $db->table('tb_lancamentos')->where('LancamentoId', $id)->delete();
+
+        if ($faturaId) {
+            (new FaturaModel())->recalcularValorTotal($faturaId);
+        }
 
         $db->transComplete();
 

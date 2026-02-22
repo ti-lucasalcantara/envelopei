@@ -4,6 +4,8 @@ namespace App\Controllers\Api;
 
 use App\Models\Envelopei\EnvelopeModel;
 use App\Models\Envelopei\ContaModel;
+use App\Models\Envelopei\CartaoCreditoModel;
+use App\Models\Envelopei\FaturaModel;
 
 class DashboardController extends BaseApiController
 {
@@ -15,6 +17,8 @@ class DashboardController extends BaseApiController
 
         $envModel   = new EnvelopeModel();
         $contaModel = new ContaModel();
+        $cartaoModel = new CartaoCreditoModel();
+        $faturaModel = new FaturaModel();
 
         $envelopes = $envModel->saldosPorUsuario($uid);
 
@@ -35,13 +39,20 @@ class DashboardController extends BaseApiController
 
         $totalContas = round($totalContas, 2);
 
+        $cartoes = $cartaoModel->listarAtivos($uid);
+        $faturasProximas = $faturaModel->proximasAVencer($uid, 5);
+        $faturasEmAberto = $faturaModel->totalFaturasEmAberto($uid);
+
         return $this->ok([
-            'Envelopes' => $envelopes,
-            'Contas'    => $contas,
-            'Totais'    => [
-                'TotalEnvelopes' => $totalEnvelopes,
-                'TotalContas'    => $totalContas,
-                'Diferenca'      => round($totalContas - $totalEnvelopes, 2),
+            'Envelopes'       => $envelopes,
+            'Contas'          => $contas,
+            'CartoesCredito'  => $cartoes,
+            'FaturasProximas' => $faturasProximas,
+            'Totais'          => [
+                'TotalEnvelopes'    => $totalEnvelopes,
+                'TotalContas'       => $totalContas,
+                'Diferenca'         => round($totalContas - $totalEnvelopes, 2),
+                'FaturasEmAberto'   => round($faturasEmAberto, 2),
             ],
         ]);
     }

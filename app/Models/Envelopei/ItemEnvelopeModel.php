@@ -10,7 +10,12 @@ class ItemEnvelopeModel extends BaseEnvelopeiModel
     protected $allowedFields = [
         'LancamentoId',
         'EnvelopeId',
+        'FaturaId',
+        'Pago',
+        'DataPagamento',
+        'ContaIdPagamento',
         'Valor',
+        'ValorPago',
         'DataCriacao',
     ];
 
@@ -19,8 +24,9 @@ class ItemEnvelopeModel extends BaseEnvelopeiModel
         $db = db_connect();
 
         $builder = $db->table('tb_itens_envelope ie')
-            ->select('ie.*, l.TipoLancamento, l.Descricao, l.DataLancamento')
+            ->select('ie.*, ie.ValorPago, l.TipoLancamento, l.Descricao, l.DataLancamento, f.Pago as FaturaPago, f.MesReferencia, f.AnoReferencia')
             ->join('tb_lancamentos l', 'l.LancamentoId = ie.LancamentoId', 'inner')
+            ->join('tb_faturas f', 'f.FaturaId = ie.FaturaId', 'left')
             ->where('ie.EnvelopeId', $envelopeId);
 
         if ($dataInicio) $builder->where('l.DataLancamento >=', $dataInicio);

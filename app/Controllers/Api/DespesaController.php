@@ -5,6 +5,8 @@ namespace App\Controllers\Api;
 use App\Models\Envelopei\LancamentoModel;
 use App\Models\Envelopei\ItemContaModel;
 use App\Models\Envelopei\ItemEnvelopeModel;
+use App\Models\Envelopei\CartaoCreditoModel;
+use App\Models\Envelopei\FaturaModel;
 
 class DespesaController extends BaseApiController
 {
@@ -14,40 +16,79 @@ class DespesaController extends BaseApiController
         $uid = $this->requireUsuarioId($p);
         if (!$uid) return $this->fail('Usuário não informado.', [], 401);
 
-        $contaId   = (int)($p['ContaId'] ?? 0);
-        $envelopeId = (int)($p['EnvelopeId'] ?? 0);
-        $valor     = (float)($p['Valor'] ?? 0);
+        $contaId     = (int)($p['ContaId'] ?? 0);
+        $cartaoId    = (int)($p['CartaoCreditoId'] ?? 0);
+        $envelopeId  = (int)($p['EnvelopeId'] ?? 0);
+        $valor       = (float)($p['Valor'] ?? 0);
 
-        if ($contaId <= 0) return $this->fail('ContaId é obrigatório.', [], 422);
         if ($envelopeId <= 0) return $this->fail('EnvelopeId é obrigatório.', [], 422);
         if ($valor <= 0) return $this->fail('Valor deve ser maior que zero.', [], 422);
 
         $valor = round($valor, 2);
 
+        $ehCartao = $cartaoId > 0;
+
+        if ($ehCartao) {
+            $cartaoModel = new CartaoCreditoModel();
+            $cartao = $cartaoModel->find($cartaoId);
+            if (!$cartao || (int)$cartao['UsuarioId'] !== $uid) {
+                return $this->fail('Cartão não encontrado.', [], 404);
+            }
+            $diaFechamento = (int)($cartao['DiaFechamento'] ?? 10);
+            $diaVencimento = (int)($cartao['DiaVencimento'] ?? 17);
+        } else {
+            if ($contaId <= 0) return $this->fail('ContaId ou CartaoCreditoId é obrigatório.', [], 422);
+        }
+
         $db = db_connect();
         $db->transStart();
 
-        $lancamentoId = (new LancamentoModel())->insert([
+        $dataLancamento = $this->normalizeDate($p['DataLancamento'] ?? null);
+
+        $lancamentoData = [
             'UsuarioId'      => $uid,
             'CategoriaId'    => !empty($p['CategoriaId']) ? (int)$p['CategoriaId'] : null,
+            'CartaoCreditoId' => $ehCartao ? $cartaoId : null,
+            'FaturaId'       => null,
             'TipoLancamento' => 'despesa',
             'Descricao'      => $p['Descricao'] ?? null,
-            'DataLancamento' => $this->normalizeDate($p['DataLancamento'] ?? null),
-        ]);
+            'DataLancamento' => $dataLancamento,
+        ];
 
-        // conta (-)
-        (new ItemContaModel())->insert([
-            'LancamentoId' => (int)$lancamentoId,
-            'ContaId'      => $contaId,
-            'Valor'        => -$valor,
-        ]);
+        $faturaId = null;
+        if ($ehCartao) {
+            $ref = FaturaModel::mesAnoParaDespesa($dataLancamento, $diaFechamento);
+            $faturaModel = new FaturaModel();
+            $fatura = $faturaModel->obterOuCriar($cartaoId, $ref['Mes'], $ref['Ano'], $diaVencimento);
+            $faturaId = (int)$fatura['FaturaId'];
+            $lancamentoData['FaturaId'] = $faturaId;
+        }
 
-        // envelope (-)
-        (new ItemEnvelopeModel())->insert([
+        $lancamentoId = (new LancamentoModel())->insert($lancamentoData);
+
+        if (!$ehCartao) {
+            (new ItemContaModel())->insert([
+                'LancamentoId' => (int)$lancamentoId,
+                'ContaId'      => $contaId,
+                'Valor'        => -$valor,
+            ]);
+        }
+
+        $itemEnvelope = [
             'LancamentoId' => (int)$lancamentoId,
             'EnvelopeId'   => $envelopeId,
             'Valor'        => -$valor,
-        ]);
+        ];
+        if ($faturaId) {
+            $itemEnvelope['FaturaId'] = $faturaId;
+        }
+
+        (new ItemEnvelopeModel())->insert($itemEnvelope);
+
+        if ($ehCartao && $faturaId) {
+            $faturaModel = new FaturaModel();
+            $faturaModel->recalcularValorTotal($faturaId);
+        }
 
         $db->transComplete();
 

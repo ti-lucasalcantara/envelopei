@@ -20,12 +20,13 @@
                     <tr>
                         <th>Nome</th>
                         <th>Cor</th>
+                        <th>Status</th>
                         <th class="text-end">Saldo</th>
-                        <th style="width:160px;"></th>
+                        <th style="width:200px;"></th>
                     </tr>
                 </thead>
                 <tbody id="tbEnvelopes">
-                    <tr><td colspan="4" class="text-center text-muted py-4">Carregando…</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted py-4">Carregando…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -49,7 +50,7 @@
                 <div class="row g-3">
                     <div class="col-6">
                         <label class="form-label">Cor</label>
-                        <input type="text" class="form-control" id="envCor" placeholder="#0d6efd">
+                        <input type="color" class="form-control" id="envCor" placeholder="#0d6efd">
                     </div>
                     <div class="col-6">
                         <label class="form-label">Ordem</label>
@@ -74,7 +75,7 @@
     let envelopes = [];
 
     async function carregar() {
-        const r = await Envelopei.api('api/envelopes', 'GET');
+        const r = await Envelopei.api('api/envelopes?IncluirInativos=1', 'GET');
         if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao carregar.', 'danger');
 
         envelopes = r.data ?? [];
@@ -85,25 +86,41 @@
         const tb = document.getElementById('tbEnvelopes');
 
         if (!envelopes.length) {
-            tb.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Nenhum envelope.</td></tr>`;
+            tb.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Nenhum envelope.</td></tr>`;
             return;
         }
 
         tb.innerHTML = envelopes.map(e => {
+            const ativo = Number(e.Ativo) === 1;
+            const trClass = ativo ? '' : 'tr-marker-danger';
             const cor = e.Cor ? `<span class="badge" style="background:${e.Cor};"> </span> <span class="text-mono small">${e.Cor}</span>` : '-';
+            const statusBadge = ativo
+                ? '<span class="badge bg-light border border-success text-success small">Ativo</span>'
+                : '<span class="badge bg-light border border-danger text-danger small">Inativo</span>';
+            const botoes = ativo
+                ? `
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editar(${e.EnvelopeId})" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="desativar(${e.EnvelopeId})" title="Desativar">
+                        <i class="fa-solid fa-ban"></i>
+                    </button>
+                `
+                : `
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editar(${e.EnvelopeId})" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" onclick="reativar(${e.EnvelopeId})" title="Reativar">
+                        <i class="fa-solid fa-rotate-right me-1"></i>Reativar
+                    </button>
+                `;
             return `
-                <tr>
+                <tr class="${trClass}">
                     <td class="fw-semibold">${e.Nome}</td>
                     <td>${cor}</td>
+                    <td>${statusBadge}</td>
                     <td class="text-end fw-semibold">${Envelopei.money(e.Saldo)}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary me-2" onclick="editar(${e.EnvelopeId})">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="desativar(${e.EnvelopeId})">
-                            <i class="fa-solid fa-ban"></i>
-                        </button>
-                    </td>
+                    <td class="text-end">${botoes}</td>
                 </tr>
             `;
         }).join('');
@@ -123,11 +140,19 @@
     }
 
     async function desativar(id) {
-        if (!confirm('Desativar este envelope?')) return;
+        if (!confirm('Desativar este envelope? Ele deixará de aparecer no dashboard.')) return;
         const r = await Envelopei.api(`api/envelopes/${id}`, 'DELETE', {});
         if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao desativar.', 'danger');
 
         Envelopei.toast('Envelope desativado.', 'success');
+        carregar();
+    }
+
+    async function reativar(id) {
+        const r = await Envelopei.api(`api/envelopes/${id}`, 'PUT', { Ativo: 1 });
+        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao reativar.', 'danger');
+
+        Envelopei.toast('Envelope reativado!', 'success');
         carregar();
     }
 

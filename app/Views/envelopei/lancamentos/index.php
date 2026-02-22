@@ -27,6 +27,8 @@
                     <option value="receita">Receita</option>
                     <option value="despesa">Despesa</option>
                     <option value="transferencia">Transferência</option>
+                    <option value="pgto_fatura">Pagamento fatura</option>
+                    <option value="pgto_parcial">Pagamento parcial</option>
                     <option value="ajuste">Ajuste</option>
                 </select>
             </div>
@@ -143,6 +145,7 @@
 <script>
     let cacheContas = [];
     let cacheEnvelopes = [];
+    let cacheCartoes = [];
 
     // lista completa (enriquecida) e lista filtrada
     let listaFull = [];
@@ -159,10 +162,12 @@
 
     function badgeTipo(tipo) {
         const t = (tipo || '').toLowerCase();
-        if (t === 'receita') return `<span class="badge text-bg-success"><i class="fa-solid fa-arrow-up me-1"></i>receita</span>`;
-        if (t === 'despesa') return `<span class="badge text-bg-danger"><i class="fa-solid fa-arrow-down me-1"></i>despesa</span>`;
-        if (t === 'transferencia') return `<span class="badge text-bg-secondary"><i class="fa-solid fa-right-left me-1"></i>transferência</span>`;
-        if (t === 'ajuste') return `<span class="badge text-bg-dark"><i class="fa-solid fa-wrench me-1"></i>ajuste</span>`;
+        if (t === 'receita') return `<span class="badge bg-light border border-success text-success"><i class="fa-solid fa-arrow-up me-1"></i>receita</span>`;
+        if (t === 'despesa') return `<span class="badge bg-light border border-danger text-danger"><i class="fa-solid fa-arrow-down me-1"></i>despesa</span>`;
+        if (t === 'transferencia') return `<span class="badge bg-light border border-secondary text-secondary"><i class="fa-solid fa-right-left me-1"></i>transferência</span>`;
+        if (t === 'pgto_fatura') return `<span class="badge bg-light border border-info text-info"><i class="fa-solid fa-credit-card me-1"></i>pgto. fatura</span>`;
+        if (t === 'pgto_parcial') return `<span class="badge bg-light border border-info text-info"><i class="fa-solid fa-credit-card me-1"></i>pgto. parc.</span>`;
+        if (t === 'ajuste') return `<span class="badge bg-light border border-dark text-dark"><i class="fa-solid fa-wrench me-1"></i>ajuste</span>`;
         return `<span class="badge bg-light text-dark border">${tipo || '-'}</span>`;
     }
 
@@ -180,6 +185,12 @@
     function getNomeEnvelope(envelopeId) {
         const e = cacheEnvelopes.find(x => Number(x.EnvelopeId) === Number(envelopeId));
         return e ? e.Nome : `Envelope ${envelopeId}`;
+    }
+
+    function getNomeCartao(cartaoId) {
+        const c = cacheCartoes.find(x => Number(x.CartaoCreditoId) === Number(cartaoId));
+        if (!c) return `Cartão ${cartaoId}`;
+        return c.Ultimos4Digitos ? `${c.Nome} ****${c.Ultimos4Digitos}` : c.Nome;
     }
 
     function preencherSelects() {
@@ -202,6 +213,7 @@
 
         cacheContas = r.data?.Contas ?? [];
         cacheEnvelopes = r.data?.Envelopes ?? [];
+        cacheCartoes = r.data?.CartoesCredito ?? [];
 
         preencherSelects();
         return true;
@@ -258,12 +270,15 @@
 
             // valor total na conta (soma dos itens de conta)
             const valorConta = itensConta.reduce((sum, x) => sum + Number(x.Valor || 0), 0);
+            // valor envelope (para despesa cartão sem ItemConta)
+            const valorEnvelope = itensEnvelope.reduce((sum, x) => sum + Number(x.Valor || 0), 0);
 
             out.push({
                 ...l,
                 _contasIds: contasIds,
                 _envelopesIds: envelopesIds,
                 _valorConta: valorConta,
+                _valorEnvelope: valorEnvelope,
             });
         }
 
@@ -298,26 +313,26 @@
         tb.innerHTML = listaFiltrada.map(l => {
             const tipo = (l.TipoLancamento || '').toLowerCase();
 
-            // nome(s) conta/envelope (exibe 1 ou "múltiplos")
+            // nome(s) conta/envelope/cartão (exibe 1 ou "múltiplos")
             const contas = (l._contasIds || []);
             const envs   = (l._envelopesIds || []);
+            const cartaoId = Number(l.CartaoCreditoId || 0);
 
-            const contaLabel = contas.length === 0 ? '-' : (contas.length === 1 ? getNomeConta(contas[0]) : `${getNomeConta(contas[0])} +${contas.length-1}`);
-            const envLabel   = envs.length === 0 ? '-' : (envs.length === 1 ? getNomeEnvelope(envs[0]) : `${getNomeEnvelope(envs[0])} +${envs.length-1}`);
+            let contaLabel = contas.length === 0 ? '-' : (contas.length === 1 ? getNomeConta(contas[0]) : `${getNomeConta(contas[0])} +${contas.length-1}`);
+            if (cartaoId && contaLabel === '-') contaLabel = `<span class="text-primary"><i class="fa-solid fa-credit-card me-1"></i>${getNomeCartao(cartaoId)}</span>`;
 
-            // valor: para receita/despesa fica bem; para transferência entre envelopes pode vir 0 em conta
-            // então mostramos:
-            // - se tiver valorConta != 0 -> usa ele
-            // - senão, mostra "—" (ou 0)
-            const valor = Number(l._valorConta || 0);
+            const envLabel = envs.length === 0 ? '-' : (envs.length === 1 ? getNomeEnvelope(envs[0]) : `${getNomeEnvelope(envs[0])} +${envs.length-1}`);
+
+            // valor: usa valorConta; se 0 e despesa cartão, usa valorEnvelope (negativo)
+            let valor = Number(l._valorConta || 0);
+            if (valor === 0 && cartaoId && tipo === 'despesa') valor = Number(l._valorEnvelope || 0);
             const valorHtml = (valor !== 0) ? fmtMoneyColored(valor) : `<span class="text-muted">—</span>`;
 
-            // linha levemente colorida (receita/despesa)
-            const trClass = tipo === 'receita' ? 'table-success' : (tipo === 'despesa' ? 'table-danger' : '');
+            const trClass = tipo === 'receita' ? 'tr-marker-success' : (tipo === 'despesa' || tipo === 'pgto_fatura' ? 'tr-marker-danger' : '');
 
             return `
                 <tr class="${trClass}">
-                    <td class="text-mono">${l.DataLancamento ?? '-'}</td>
+                    <td class="text-mono">${Envelopei.dateBR(l.DataLancamento)}</td>
                     <td>${badgeTipo(l.TipoLancamento)}</td>
                     <td>${l.Descricao ?? '-'}</td>
                     <td>

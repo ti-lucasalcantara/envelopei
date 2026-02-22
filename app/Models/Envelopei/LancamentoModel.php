@@ -10,6 +10,8 @@ class LancamentoModel extends BaseEnvelopeiModel
     protected $allowedFields = [
         'UsuarioId',
         'CategoriaId',
+        'CartaoCreditoId',
+        'FaturaId',
         'TipoLancamento',
         'Descricao',
         'DataLancamento',
