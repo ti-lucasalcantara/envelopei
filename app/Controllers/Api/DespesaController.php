@@ -27,6 +27,8 @@ class DespesaController extends BaseApiController
         $valor = round($valor, 2);
 
         $ehCartao = $cartaoId > 0;
+        $parcelas = $ehCartao ? max(1, min(24, (int)($p['Parcelas'] ?? 1))) : 1;
+        $valorParcela = $ehCartao && $parcelas > 1 ? round($valor / $parcelas, 2) : $valor;
 
         if ($ehCartao) {
             $cartaoModel = new CartaoCreditoModel();
@@ -44,50 +46,85 @@ class DespesaController extends BaseApiController
         $db->transStart();
 
         $dataLancamento = $this->normalizeDate($p['DataLancamento'] ?? null);
+        $descricao = $p['Descricao'] ?? null;
 
-        $lancamentoData = [
-            'UsuarioId'      => $uid,
-            'CategoriaId'    => !empty($p['CategoriaId']) ? (int)$p['CategoriaId'] : null,
-            'CartaoCreditoId' => $ehCartao ? $cartaoId : null,
-            'FaturaId'       => null,
-            'TipoLancamento' => 'despesa',
-            'Descricao'      => $p['Descricao'] ?? null,
-            'DataLancamento' => $dataLancamento,
-        ];
+        $lancamentoModel = new LancamentoModel();
+        $itemEnvelopeModel = new ItemEnvelopeModel();
+        $faturaModel = new FaturaModel();
+        $faturasRecalc = [];
+        $primeiroLancamentoId = null;
 
-        $faturaId = null;
-        if ($ehCartao) {
+        if ($ehCartao && $parcelas > 1) {
             $ref = FaturaModel::mesAnoParaDespesa($dataLancamento, $diaFechamento);
-            $faturaModel = new FaturaModel();
-            $fatura = $faturaModel->obterOuCriar($cartaoId, $ref['Mes'], $ref['Ano'], $diaVencimento);
-            $faturaId = (int)$fatura['FaturaId'];
-            $lancamentoData['FaturaId'] = $faturaId;
-        }
+            for ($i = 1; $i <= $parcelas; $i++) {
+                $mesAno = FaturaModel::mesAnoParaParcela($ref['Mes'], $ref['Ano'], $i);
+                $fatura = $faturaModel->obterOuCriar($cartaoId, $mesAno['Mes'], $mesAno['Ano'], $diaVencimento);
+                $faturaId = (int)$fatura['FaturaId'];
+                $faturasRecalc[$faturaId] = true;
 
-        $lancamentoId = (new LancamentoModel())->insert($lancamentoData);
+                $descParcela = $parcelas > 1 ? trim(($descricao ?? '') . ' (' . $i . '/' . $parcelas . ')') : $descricao;
+                $lid = $lancamentoModel->insert([
+                    'UsuarioId'       => $uid,
+                    'CategoriaId'     => !empty($p['CategoriaId']) ? (int)$p['CategoriaId'] : null,
+                    'CartaoCreditoId' => $cartaoId,
+                    'FaturaId'        => $faturaId,
+                    'TipoLancamento'  => 'despesa',
+                    'Descricao'       => $descParcela ?: null,
+                    'DataLancamento'  => $dataLancamento,
+                ]);
 
-        if (!$ehCartao) {
-            (new ItemContaModel())->insert([
+                $itemEnvelopeModel->insert([
+                    'LancamentoId' => (int)$lid,
+                    'EnvelopeId'   => $envelopeId,
+                    'FaturaId'     => $faturaId,
+                    'Valor'        => -$valorParcela,
+                ]);
+                if ($primeiroLancamentoId === null) $primeiroLancamentoId = (int)$lid;
+            }
+        } else {
+            $lancamentoData = [
+                'UsuarioId'       => $uid,
+                'CategoriaId'     => !empty($p['CategoriaId']) ? (int)$p['CategoriaId'] : null,
+                'CartaoCreditoId'  => $ehCartao ? $cartaoId : null,
+                'FaturaId'        => null,
+                'TipoLancamento'  => 'despesa',
+                'Descricao'       => $descricao,
+                'DataLancamento'  => $dataLancamento,
+            ];
+
+            $faturaId = null;
+            if ($ehCartao) {
+                $ref = FaturaModel::mesAnoParaDespesa($dataLancamento, $diaFechamento);
+                $fatura = $faturaModel->obterOuCriar($cartaoId, $ref['Mes'], $ref['Ano'], $diaVencimento);
+                $faturaId = (int)$fatura['FaturaId'];
+                $lancamentoData['FaturaId'] = $faturaId;
+            }
+
+            $lancamentoId = $lancamentoModel->insert($lancamentoData);
+
+            if (!$ehCartao) {
+                (new ItemContaModel())->insert([
+                    'LancamentoId' => (int)$lancamentoId,
+                    'ContaId'      => $contaId,
+                    'Valor'        => -$valor,
+                ]);
+            }
+
+            $itemEnvelope = [
                 'LancamentoId' => (int)$lancamentoId,
-                'ContaId'      => $contaId,
+                'EnvelopeId'   => $envelopeId,
                 'Valor'        => -$valor,
-            ]);
+            ];
+            if ($faturaId) {
+                $itemEnvelope['FaturaId'] = $faturaId;
+                $faturasRecalc[$faturaId] = true;
+            }
+
+            $itemEnvelopeModel->insert($itemEnvelope);
         }
 
-        $itemEnvelope = [
-            'LancamentoId' => (int)$lancamentoId,
-            'EnvelopeId'   => $envelopeId,
-            'Valor'        => -$valor,
-        ];
-        if ($faturaId) {
-            $itemEnvelope['FaturaId'] = $faturaId;
-        }
-
-        (new ItemEnvelopeModel())->insert($itemEnvelope);
-
-        if ($ehCartao && $faturaId) {
-            $faturaModel = new FaturaModel();
-            $faturaModel->recalcularValorTotal($faturaId);
+        foreach (array_keys($faturasRecalc) as $fid) {
+            $faturaModel->recalcularValorTotal($fid);
         }
 
         $db->transComplete();
@@ -96,6 +133,6 @@ class DespesaController extends BaseApiController
             return $this->fail('Falha ao salvar despesa.', [], 500);
         }
 
-        return $this->ok(['LancamentoId' => (int)$lancamentoId], 'Despesa registrada', 201);
+        return $this->ok(['LancamentoId' => (int)($primeiroLancamentoId ?? $lancamentoId ?? 0)], 'Despesa registrada', 201);
     }
 }

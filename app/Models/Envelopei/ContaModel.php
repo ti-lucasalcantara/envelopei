@@ -24,7 +24,7 @@ class ContaModel extends BaseEnvelopeiModel
                     ->findAll();
     }
 
-    public function saldoAtual(int $contaId): float
+    public function saldoAtual(int $contaId, ?string $dataFim = null): float
     {
         $conta = $this->select('SaldoInicial')->find($contaId);
 
@@ -34,11 +34,16 @@ class ContaModel extends BaseEnvelopeiModel
 
         $db = db_connect();
 
-        $row = $db->table('tb_itens_conta ic')
+        $builder = $db->table('tb_itens_conta ic')
             ->select('COALESCE(SUM(ic.Valor), 0) as Total')
-            ->where('ic.ContaId', $contaId)
-            ->get()
-            ->getRowArray();
+            ->where('ic.ContaId', $contaId);
+
+        if ($dataFim !== null && $dataFim !== '') {
+            $builder->join('tb_lancamentos l', 'l.LancamentoId = ic.LancamentoId', 'inner')
+                    ->where('l.DataLancamento <=', $dataFim);
+        }
+
+        $row = $builder->get()->getRowArray();
 
         return (float)$conta['SaldoInicial'] + (float)($row['Total'] ?? 0);
     }

@@ -73,6 +73,25 @@ class FaturaModel extends BaseEnvelopeiModel
     }
 
     /**
+     * Mes/ano da fatura para a parcela N (1-based).
+     * Parcela 1 = ref; parcela 2 = ref + 1 mês; etc.
+     */
+    public static function mesAnoParaParcela(int $mesRef, int $anoRef, int $numeroParcela): array
+    {
+        $mes = $mesRef;
+        $ano = $anoRef;
+        $add = $numeroParcela - 1;
+        if ($add > 0) {
+            $mes += $add;
+            while ($mes > 12) {
+                $mes -= 12;
+                $ano++;
+            }
+        }
+        return ['Mes' => $mes, 'Ano' => $ano];
+    }
+
+    /**
      * Lista faturas de um usuário (via cartões).
      */
     public function listarPorUsuario(int $usuarioId, ?bool $apenasPendentes = null): array
@@ -174,6 +193,29 @@ class FaturaModel extends BaseEnvelopeiModel
             ->where('cc.Ativo', 1)
             ->where('f.Pago', 0)
             ->where('f.DataVencimento >=', date('Y-m-d'))
+            ->orderBy('f.DataVencimento', 'ASC')
+            ->limit($limite)
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * Faturas pendentes com vencimento somente no próximo mês (para o dashboard).
+     */
+    public function proximasAVencerProximoMes(int $usuarioId, int $limite = 10): array
+    {
+        $inicioProximoMes = date('Y-m-01', strtotime('first day of next month'));
+        $fimProximoMes   = date('Y-m-t', strtotime('last day of next month'));
+
+        $db = db_connect();
+        return $db->table('tb_faturas f')
+            ->select('f.*, cc.Nome as CartaoNome, cc.Ultimos4Digitos')
+            ->join('tb_cartoes_credito cc', 'cc.CartaoCreditoId = f.CartaoCreditoId', 'inner')
+            ->where('cc.UsuarioId', $usuarioId)
+            ->where('cc.Ativo', 1)
+            ->where('f.Pago', 0)
+            ->where('f.DataVencimento >=', $inicioProximoMes)
+            ->where('f.DataVencimento <=', $fimProximoMes)
             ->orderBy('f.DataVencimento', 'ASC')
             ->limit($limite)
             ->get()

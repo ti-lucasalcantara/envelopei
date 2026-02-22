@@ -105,8 +105,55 @@
 
             const toast = new bootstrap.Toast(el, { delay: 3500 });
             toast.show();
+        },
+
+        /** Converte string pt-BR (1.234,56) para número. Use ao enviar formulário. */
+        parseMoney(str) {
+            if (str == null || str === '') return 0;
+            const s = String(str).replace(/\s/g, '').replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.');
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        },
+
+        /** Formata número para exibição em input pt-BR (1.234,56). */
+        formatMoneyForInput(num) {
+            const n = Number(num);
+            if (isNaN(n)) return '';
+            const fixed = n.toFixed(2);
+            const [intPart, decPart] = fixed.split('.');
+            const withDots = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return withDots + ',' + decPart;
+        },
+
+        /** Aplica máscara de dinheiro (pt-BR) no input. Use classe .input-money no input. */
+        applyMoneyMask(input) {
+            if (!input || input._moneyMask) return;
+            input._moneyMask = true;
+            input.setAttribute('inputmode', 'decimal');
+            input.addEventListener('input', function() {
+                let v = this.value.replace(/\D/g, '');
+                if (v.length > 12) v = v.slice(0, 12);
+                if (v.length === 0) { this.value = ''; return; }
+                var intRaw = v.length <= 2 ? '0' : v.slice(0, -2);
+                intRaw = intRaw.replace(/^0+/, '') || '0';
+                var intPart = intRaw.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                var decPart = v.slice(-2).padStart(2, '0');
+                this.value = intPart + ',' + decPart;
+            });
+            input.addEventListener('blur', function() {
+                if (this.value === '' || this.value === '0,00') return;
+                var n = Envelopei.parseMoney(this.value);
+                if (n === 0) this.value = '';
+                else this.value = Envelopei.formatMoneyForInput(n);
+            });
         }
     };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.input-money').forEach(function(el) {
+            Envelopei.applyMoneyMask(el);
+        });
+    });
 </script>
 
 <?= $this->renderSection('js') ?>

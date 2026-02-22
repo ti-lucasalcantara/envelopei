@@ -17,6 +17,10 @@
                     <a class="nav-link" href="<?= base_url('lancamentos') ?>"><i class="fa-solid fa-receipt me-2"></i>Lançamentos</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="<?= base_url('faturas') ?>"><i class="fa-solid fa-file-invoice me-2"></i>Faturas</a>
+                </li>
+                
+                <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('envelopes') ?>"><i class="fa-solid fa-inbox me-2"></i>Envelopes</a>
                 </li>
                 <li class="nav-item">
@@ -25,9 +29,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('cartoes') ?>"><i class="fa-solid fa-credit-card me-2"></i>Cartões</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('faturas') ?>"><i class="fa-solid fa-file-invoice me-2"></i>Faturas</a>
-                </li>
+              
                 <li class="nav-item">
                     <a class="nav-link" href="<?= base_url('rateios') ?>">
                         <i class="fa-solid fa-percent me-2"></i>Rateio Padrão

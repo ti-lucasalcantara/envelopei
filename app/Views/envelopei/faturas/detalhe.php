@@ -187,7 +187,7 @@ $faturaId = (int)($fatura['FaturaId'] ?? 0);
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Valor a pagar</label>
-                    <input type="number" step="0.01" class="form-control" id="pagarItemValor" placeholder="0,00">
+                    <input type="text" inputmode="decimal" class="form-control input-money" id="pagarItemValor" placeholder="0,00">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição (opcional)</label>
@@ -235,8 +235,7 @@ $faturaId = (int)($fatura['FaturaId'] ?? 0);
             await carregarContas();
             document.getElementById('pagarItemId').value = itemId;
             document.getElementById('pagarRestanteInfo').innerText = Envelopei.money(restante);
-            document.getElementById('pagarItemValor').value = restante.toFixed(2);
-            document.getElementById('pagarItemValor').max = restante;
+            document.getElementById('pagarItemValor').value = Envelopei.formatMoneyForInput(restante);
             document.getElementById('pagarItemDescricao').value = '';
             document.getElementById('pagarItemData').value = new Date().toISOString().slice(0, 10);
             document.getElementById('pagarItemConta').innerHTML =
@@ -263,7 +262,7 @@ $faturaId = (int)($fatura['FaturaId'] ?? 0);
 
     document.getElementById('btnConfirmarPagarItem')?.addEventListener('click', async function() {
         const itemId = document.getElementById('pagarItemId').value;
-        const valor = Number(document.getElementById('pagarItemValor').value || 0);
+        const valor = Envelopei.parseMoney(document.getElementById('pagarItemValor').value);
         const descricao = document.getElementById('pagarItemDescricao').value.trim();
         const contaId = Number(document.getElementById('pagarItemConta').value);
         const dataPag = document.getElementById('pagarItemData').value;

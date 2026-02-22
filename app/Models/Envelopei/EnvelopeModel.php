@@ -45,16 +45,19 @@ class EnvelopeModel extends BaseEnvelopeiModel
         return (float)($row['Total'] ?? 0);
     }
 
-    public function saldosPorUsuario(int $usuarioId): array
+    public function saldosPorUsuario(int $usuarioId, ?string $dataFim = null): array
     {
         $db = db_connect();
 
+        $ateData = ($dataFim !== null && $dataFim !== '') ? ' AND l.DataLancamento <= ' . $db->escape($dataFim) : '';
+
         $sql = "
             SELECT e.EnvelopeId, e.Nome, e.Cor, e.Ordem,
-                   COALESCE(SUM(CASE WHEN ie.FaturaId IS NULL THEN ie.Valor WHEN ie.FaturaId IS NOT NULL AND (COALESCE(ie.ValorPago, 0) > 0 OR f.Pago = 1) THEN -COALESCE(ie.ValorPago, 0) ELSE 0 END), 0) as Saldo,
-                   COALESCE(SUM(CASE WHEN ie.FaturaId IS NOT NULL AND COALESCE(f.Pago, 0) = 0 THEN GREATEST(0, ABS(ie.Valor) - COALESCE(ie.ValorPago, 0)) ELSE 0 END), 0) as GastosComCartao
+                   COALESCE(SUM(CASE WHEN l.LancamentoId IS NOT NULL {$ateData} THEN CASE WHEN ie.FaturaId IS NULL THEN ie.Valor WHEN ie.FaturaId IS NOT NULL AND (COALESCE(ie.ValorPago, 0) > 0 OR f.Pago = 1) THEN -COALESCE(ie.ValorPago, 0) ELSE 0 END ELSE 0 END), 0) as Saldo,
+                   COALESCE(SUM(CASE WHEN l.LancamentoId IS NOT NULL {$ateData} AND ie.FaturaId IS NOT NULL AND COALESCE(f.Pago, 0) = 0 THEN GREATEST(0, ABS(ie.Valor) - COALESCE(ie.ValorPago, 0)) ELSE 0 END), 0) as GastosComCartao
             FROM tb_envelopes e
             LEFT JOIN tb_itens_envelope ie ON ie.EnvelopeId = e.EnvelopeId
+            LEFT JOIN tb_lancamentos l ON l.LancamentoId = ie.LancamentoId
             LEFT JOIN tb_faturas f ON f.FaturaId = ie.FaturaId
             WHERE e.UsuarioId = ? AND e.Ativo = 1
             GROUP BY e.EnvelopeId

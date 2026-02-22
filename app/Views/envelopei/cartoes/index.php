@@ -68,7 +68,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">Limite (opcional)</label>
-                        <input type="number" step="0.01" class="form-control" id="cartaoLimite" placeholder="0">
+                        <input type="text" inputmode="decimal" class="form-control input-money" id="cartaoLimite" placeholder="0,00">
                     </div>
                     <div class="col-12">
                         <label class="form-label">Cor (opcional)</label>
@@ -159,7 +159,7 @@
         $('#cartaoFinal').val(c.Ultimos4Digitos ?? '');
         $('#cartaoDiaFech').val(c.DiaFechamento ?? 10);
         $('#cartaoDiaVenc').val(c.DiaVencimento ?? 17);
-        $('#cartaoLimite').val(c.Limite ?? '');
+        $('#cartaoLimite').val(c.Limite != null ? Envelopei.formatMoneyForInput(c.Limite) : '');
         $('#cartaoCor').val(c.Cor ?? '');
 
         new bootstrap.Modal(document.getElementById('modalCartao')).show();
@@ -183,7 +183,7 @@
         const Ultimos4Digitos = $('#cartaoFinal').val().replace(/\D/g, '').slice(0, 4) || null;
         const DiaFechamento = Number($('#cartaoDiaFech').val()) || 10;
         const DiaVencimento = Number($('#cartaoDiaVenc').val()) || 17;
-        const Limite = $('#cartaoLimite').val() ? Number($('#cartaoLimite').val()) : null;
+        const Limite = $('#cartaoLimite').val() ? Envelopei.parseMoney($('#cartaoLimite').val()) : null;
         const Cor = $('#cartaoCor').val().trim() || null;
 
         if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');

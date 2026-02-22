@@ -62,7 +62,7 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label">Saldo Inicial</label>
-                        <input type="number" step="0.01" class="form-control" id="ctaSaldoInicial" value="0">
+                        <input type="text" inputmode="decimal" class="form-control input-money" id="ctaSaldoInicial" value="0,00" placeholder="0,00">
                     </div>
                 </div>
             </div>
@@ -127,7 +127,7 @@
         $('#ctaId').val(c.ContaId);
         $('#ctaNome').val(c.Nome);
         $('#ctaTipo').val(c.TipoConta);
-        $('#ctaSaldoInicial').val(c.SaldoInicial);
+        $('#ctaSaldoInicial').val(Envelopei.formatMoneyForInput(c.SaldoInicial));
 
         new bootstrap.Modal(document.getElementById('modalConta')).show();
     }
@@ -145,7 +145,7 @@
         const ContaId = Number($('#ctaId').val() || 0);
         const Nome = $('#ctaNome').val().trim();
         const TipoConta = $('#ctaTipo').val();
-        const SaldoInicial = Number($('#ctaSaldoInicial').val() || 0);
+        const SaldoInicial = Envelopei.parseMoney($('#ctaSaldoInicial').val());
 
         if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');
 
@@ -164,7 +164,7 @@
         $('#ctaId').val('');
         $('#ctaNome').val('');
         $('#ctaTipo').val('banco');
-        $('#ctaSaldoInicial').val('0');
+        $('#ctaSaldoInicial').val('0,00');
 
         carregar();
     }
@@ -178,7 +178,7 @@
             $('#ctaId').val('');
             $('#ctaNome').val('');
             $('#ctaTipo').val('banco');
-            $('#ctaSaldoInicial').val('0');
+            $('#ctaSaldoInicial').val('0,00');
         });
     });
 </script>

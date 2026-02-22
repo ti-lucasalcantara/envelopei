@@ -19,14 +19,13 @@
                 <thead class="table-light">
                     <tr>
                         <th>Nome</th>
-                        <th>Cor</th>
                         <th>Status</th>
                         <th class="text-end">Saldo</th>
                         <th style="width:200px;"></th>
                     </tr>
                 </thead>
                 <tbody id="tbEnvelopes">
-                    <tr><td colspan="5" class="text-center text-muted py-4">Carregando…</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted py-4">Carregando…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -93,7 +92,7 @@
         tb.innerHTML = envelopes.map(e => {
             const ativo = Number(e.Ativo) === 1;
             const trClass = ativo ? '' : 'tr-marker-danger';
-            const cor = e.Cor ? `<span class="badge" style="background:${e.Cor};"> </span> <span class="text-mono small">${e.Cor}</span>` : '-';
+            const cor = e.Cor ? `<span class="badge" style="background:${e.Cor};"> </span> <span class="text-mono small"></span>` : '-';
             const statusBadge = ativo
                 ? '<span class="badge bg-light border border-success text-success small">Ativo</span>'
                 : '<span class="badge bg-light border border-danger text-danger small">Inativo</span>';
@@ -103,21 +102,17 @@
                         <i class="fa-solid fa-pen"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="desativar(${e.EnvelopeId})" title="Desativar">
-                        <i class="fa-solid fa-ban"></i>
+                        <i class="fa-solid fa-ban"></i> Desativar
                     </button>
                 `
                 : `
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editar(${e.EnvelopeId})" title="Editar">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
                     <button class="btn btn-sm btn-success" onclick="reativar(${e.EnvelopeId})" title="Reativar">
-                        <i class="fa-solid fa-rotate-right me-1"></i>Reativar
+                        <i class="fa-solid fa-rotate-right me-1"></i> Reativar
                     </button>
                 `;
             return `
                 <tr class="${trClass}">
-                    <td class="fw-semibold">${e.Nome}</td>
-                    <td>${cor}</td>
+                    <td class="fw-semibold">${cor} ${e.Nome}</td>
                     <td>${statusBadge}</td>
                     <td class="text-end fw-semibold">${Envelopei.money(e.Saldo)}</td>
                     <td class="text-end">${botoes}</td>

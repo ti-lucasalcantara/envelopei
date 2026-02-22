@@ -7,7 +7,13 @@
         <h4 class="mb-0">Dashboard</h4>
         <div class="text-muted">Visão geral e conciliação</div>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <label class="d-flex align-items-center gap-2 mb-0">
+            <span class="text-muted small">Período:</span>
+            <select class="form-select form-select-sm" id="filtroPeriodo" style="width:auto; min-width:140px;">
+                <option value="">Todo o período</option>
+            </select>
+        </label>
         <button type="button" class="btn btn-outline-secondary" id="btnToggleValores" title="Ocultar/mostrar valores">
             <i class="fa-solid fa-eye" id="iconToggleValores"></i>
         </button>
@@ -179,8 +185,34 @@
         renderFaturasProximas(cacheFaturasProximas);
     }
 
+    function buildPeriodoOptions() {
+        const sel = document.getElementById('filtroPeriodo');
+        if (!sel) return;
+        const opts = sel.querySelectorAll('option');
+        for (let i = 1; i < opts.length; i++) opts[i].remove();
+        const hoje = new Date();
+        const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const anoAtual = hoje.getFullYear();
+        const mesAtual = hoje.getMonth() + 1;
+        for (let ano = 2026; ano <= anoAtual; ano++) {
+            const mesFim = ano === anoAtual ? mesAtual : 12;
+            for (let mes = 1; mes <= mesFim; mes++) {
+                const opt = document.createElement('option');
+                opt.value = ano + '-' + mes;
+                opt.textContent = nomesMes[mes - 1] + '/' + ano;
+                sel.appendChild(opt);
+            }
+        }
+    }
+
     async function carregarResumo() {
-        const r = await Envelopei.api('api/dashboard/resumo', 'GET');
+        const periodo = document.getElementById('filtroPeriodo')?.value || '';
+        let path = 'api/dashboard/resumo';
+        if (periodo) {
+            const [ano, mes] = periodo.split('-').map(Number);
+            if (mes && ano) path += '?mes=' + mes + '&ano=' + ano;
+        }
+        const r = await Envelopei.api(path, 'GET');
         if (!r?.success) {
             Envelopei.toast(r?.message ?? 'Falha ao carregar dashboard.', 'danger');
             return;
@@ -224,6 +256,8 @@
         }).join('');
     }
 
+    document.getElementById('filtroPeriodo').addEventListener('change', () => carregarResumo());
+
     document.getElementById('btnToggleValores').addEventListener('click', () => {
         const atual = valoresOcultos();
         localStorage.setItem(STORAGE_OCULTAR_VALORES, (!atual).toString());
@@ -232,6 +266,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
+        buildPeriodoOptions();
         atualizarIconeOlho();
         carregarResumo();
     });
