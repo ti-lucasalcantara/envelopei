@@ -41,6 +41,7 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('envelopes/(:num)/extrato', 'EnvelopeiWeb::envelopeExtrato/$1');
         $routes->get('contas',      'EnvelopeiWeb::contas');
         $routes->get('lancamentos', 'EnvelopeiWeb::lancamentos');
+        $routes->get('lancamentos/editar/(:num)', 'EnvelopeiWeb::editarLancamento/$1');
         $routes->get('rateios', 'EnvelopeiWeb::rateios');
         $routes->get('cartoes', 'EnvelopeiWeb::cartoes');
         $routes->get('faturas', 'EnvelopeiWeb::faturas');
@@ -93,6 +94,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // LANÇAMENTOS
         $routes->get('lancamentos', 'LancamentoController::index');
         $routes->get('lancamentos/(:num)', 'LancamentoController::show/$1');
+        $routes->put('lancamentos/(:num)', 'LancamentoController::update/$1');
         $routes->delete('lancamentos/(:num)', 'LancamentoController::delete/$1');
 
         // CARTÕES DE CRÉDITO
@@ -105,6 +107,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // FATURAS
         $routes->get('faturas', 'FaturaController::index');
         $routes->get('faturas/proximas', 'FaturaController::proximasAVencer');
+        $routes->get('faturas/cartao/(:num)', 'FaturaController::porCartao/$1');
         $routes->get('faturas/(:num)', 'FaturaController::show/$1');
         $routes->post('faturas/(:num)/pagar', 'FaturaController::pagar/$1');
         $routes->post('faturas/(:num)/desfazer', 'FaturaController::desfazerPagar/$1');

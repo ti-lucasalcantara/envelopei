@@ -112,6 +112,22 @@ class FaturaModel extends BaseEnvelopeiModel
     }
 
     /**
+     * Lista faturas de um cartão (pendentes por padrão), ordenadas por período.
+     */
+    public function listarPorCartao(int $cartaoCreditoId, bool $apenasPendentes = true): array
+    {
+        $builder = $this->where('CartaoCreditoId', $cartaoCreditoId)
+            ->orderBy('AnoReferencia', 'DESC')
+            ->orderBy('MesReferencia', 'DESC');
+
+        if ($apenasPendentes) {
+            $builder->where('Pago', 0);
+        }
+
+        return $builder->findAll();
+    }
+
+    /**
      * Lançamentos (despesas) vinculados à fatura.
      */
     public function lancamentosDaFatura(int $faturaId): array

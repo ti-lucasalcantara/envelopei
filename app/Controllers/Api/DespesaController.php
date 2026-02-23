@@ -94,9 +94,18 @@ class DespesaController extends BaseApiController
 
             $faturaId = null;
             if ($ehCartao) {
-                $ref = FaturaModel::mesAnoParaDespesa($dataLancamento, $diaFechamento);
-                $fatura = $faturaModel->obterOuCriar($cartaoId, $ref['Mes'], $ref['Ano'], $diaVencimento);
-                $faturaId = (int)$fatura['FaturaId'];
+                $faturaInformada = !empty($p['FaturaId']) ? (int)$p['FaturaId'] : null;
+                if ($faturaInformada > 0) {
+                    $fatura = $faturaModel->find($faturaInformada);
+                    if ($fatura && (int)$fatura['CartaoCreditoId'] === $cartaoId) {
+                        $faturaId = (int)$fatura['FaturaId'];
+                    }
+                }
+                if ($faturaId === null) {
+                    $ref = FaturaModel::mesAnoParaDespesa($dataLancamento, $diaFechamento);
+                    $fatura = $faturaModel->obterOuCriar($cartaoId, $ref['Mes'], $ref['Ano'], $diaVencimento);
+                    $faturaId = (int)$fatura['FaturaId'];
+                }
                 $lancamentoData['FaturaId'] = $faturaId;
             }
 

@@ -85,6 +85,12 @@
                                         <option value="">Selecione o cartão...</option>
                                     </select>
                                 </div>
+                                <div class="col-12 col-md-6" id="desFaturaWrapper" style="display:none;">
+                                    <label class="form-label fw-semibold">Fatura</label>
+                                    <select class="form-select" id="desFatura">
+                                        <option value="">Selecione a fatura...</option>
+                                    </select>
+                                </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label fw-semibold">Envelope</label>
                                     <select class="form-select" id="desEnvelopeCartao">
@@ -142,6 +148,57 @@
 
     function opt(v, t) { return `<option value="${v}">${t}</option>`; }
 
+    /** Mes/ano da fatura "atual" conforme dia de fechamento (igual ao backend). */
+    function mesAnoFaturaAtual(diaFechamento) {
+        const hoje = new Date();
+        const d = hoje.getDate();
+        let mes = hoje.getMonth() + 1;
+        let ano = hoje.getFullYear();
+        if (d > diaFechamento) {
+            if (mes === 12) { mes = 1; ano++; } else { mes++; }
+        }
+        return { mes, ano };
+    }
+
+    async function atualizarFaturaSelect() {
+        const cartaoId = Number(document.getElementById('desCartao').value || 0);
+        const parcelas = Math.max(1, Math.floor(Number(document.getElementById('desParcelas').value) || 1));
+        const wrapper = document.getElementById('desFaturaWrapper');
+        const select = document.getElementById('desFatura');
+
+        if (!cartaoId || parcelas !== 1) {
+            wrapper.style.display = 'none';
+            select.innerHTML = '<option value="">Selecione a fatura...</option>';
+            return;
+        }
+
+        const r = await Envelopei.api('api/faturas/cartao/' + cartaoId, 'GET');
+        if (!r?.success || !Array.isArray(r.data) || r.data.length === 0) {
+            wrapper.style.display = 'none';
+            select.innerHTML = '<option value="">Selecione a fatura...</option>';
+            return;
+        }
+
+        const faturas = r.data;
+        const cartao = cacheCartoes.find(c => Number(c.CartaoCreditoId) === cartaoId);
+        const diaFech = cartao ? (Number(cartao.DiaFechamento) || 10) : 10;
+        const ref = mesAnoFaturaAtual(diaFech);
+
+        const options = faturas.map(f => {
+            const mes = String(f.MesReferencia).padStart(2, '0');
+            const ano = f.AnoReferencia;
+            const label = `Fatura ${mes}/${ano}`;
+            return opt(f.FaturaId, label);
+        });
+        select.innerHTML = '<option value="">Selecione a fatura...</option>' + options.join('');
+
+        const atual = faturas.find(f => Number(f.MesReferencia) === ref.mes && Number(f.AnoReferencia) === ref.ano);
+        if (atual) select.value = atual.FaturaId;
+        else if (faturas.length) select.selectedIndex = 1;
+
+        wrapper.style.display = 'block';
+    }
+
     function togglePainel() {
         const forma = document.querySelector('input[name="desForma"]:checked')?.value || 'vista';
         document.getElementById('despainelVista').style.display = forma === 'vista' ? 'block' : 'none';
@@ -173,6 +230,8 @@
         document.getElementById('desEnvelope').value = '';
         document.getElementById('desCartao').value = '';
         document.getElementById('desEnvelopeCartao').value = '';
+        document.getElementById('desFatura').innerHTML = '<option value="">Selecione a fatura...</option>';
+        document.getElementById('desFaturaWrapper').style.display = 'none';
         document.getElementById('desParcelas').value = '1';
         document.getElementById('desDesc').value = '';
         document.getElementById('desValor').value = '';
@@ -229,6 +288,10 @@
             if (!EnvelopeId) return Envelopei.toast('Selecione o envelope.', 'danger');
             if (!Valor || Valor <= 0) return Envelopei.toast('Informe o valor.', 'danger');
             payload = { ...payload, CartaoCreditoId, EnvelopeId, DataLancamento, Valor, Parcelas };
+            if (Parcelas === 1) {
+                const FaturaId = Number(document.getElementById('desFatura').value || 0);
+                if (FaturaId > 0) payload.FaturaId = FaturaId;
+            }
         }
 
         const r = await Envelopei.api('api/despesas', 'POST', payload);
@@ -245,10 +308,11 @@
 
     document.querySelectorAll('input[name="desForma"]').forEach(el => el.addEventListener('change', togglePainel));
 
+    document.getElementById('desCartao').addEventListener('change', atualizarFaturaSelect);
     document.getElementById('desValorCartao').addEventListener('input', atualizarValorParcelaInfo);
     document.getElementById('desValorCartao').addEventListener('blur', atualizarValorParcelaInfo);
-    document.getElementById('desParcelas').addEventListener('input', atualizarValorParcelaInfo);
-    document.getElementById('desParcelas').addEventListener('change', atualizarValorParcelaInfo);
+    document.getElementById('desParcelas').addEventListener('input', () => { atualizarValorParcelaInfo(); atualizarFaturaSelect(); });
+    document.getElementById('desParcelas').addEventListener('change', () => { atualizarValorParcelaInfo(); atualizarFaturaSelect(); });
 
     document.getElementById('btnSalvarDespesa').addEventListener('click', () => salvarDespesa(false));
     document.getElementById('btnSalvarCriarNovaDespesa').addEventListener('click', () => salvarDespesa(true));

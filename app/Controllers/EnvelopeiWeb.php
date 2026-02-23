@@ -82,6 +82,18 @@ class EnvelopeiWeb extends BaseController
         ]);
     }
 
+    public function editarLancamento($id)
+    {
+        $uid = session('UsuarioId');
+        if (!$uid) {
+            return redirect()->to(base_url('login'));
+        }
+        return $this->view('envelopei/lancamentos/editar', [
+            'titulo'   => 'Envelopei - Editar lançamento',
+            'lancamentoId' => (int)$id,
+        ]);
+    }
+
     public function rateios()
     {
         return $this->view('envelopei/rateios_modelo/index', [

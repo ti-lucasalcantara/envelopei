@@ -24,6 +24,30 @@ class FaturaController extends BaseApiController
         return $this->ok($lista);
     }
 
+    /**
+     * Lista faturas (pendentes) de um cartão para seleção na despesa.
+     */
+    public function porCartao($cartaoId)
+    {
+        $p   = $this->getJson();
+        $uid = $this->requireUsuarioId($p);
+        if (!$uid) return $this->fail('Usuário não informado.', [], 401);
+
+        $cartaoId = (int)$cartaoId;
+        if ($cartaoId <= 0) return $this->fail('Cartão inválido.', [], 422);
+
+        $db = db_connect();
+        $cartao = $db->table('tb_cartoes_credito')->where('CartaoCreditoId', $cartaoId)->get()->getRowArray();
+        if (!$cartao || (int)$cartao['UsuarioId'] !== $uid) {
+            return $this->fail('Cartão não encontrado.', [], 404);
+        }
+
+        $model = new FaturaModel();
+        $lista = $model->listarPorCartao($cartaoId, true);
+
+        return $this->ok($lista);
+    }
+
     public function show($id)
     {
         $p   = $this->getJson();

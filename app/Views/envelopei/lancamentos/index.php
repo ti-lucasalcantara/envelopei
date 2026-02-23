@@ -352,6 +352,11 @@
                     <td class="text-end">${valorHtml}</td>
                     <td class="text-end td-acoes">
                         <div class="btn-group btn-group-sm">
+                            ${(tipo === 'receita' || tipo === 'despesa') ? `
+                            <a href="<?= base_url('lancamentos/editar/') ?>${l.LancamentoId}" class="btn btn-outline-primary" title="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            ` : ''}
                             <button type="button" class="btn btn-outline-danger btn-excluir" data-id="${l.LancamentoId}" title="Excluir">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
@@ -422,6 +427,7 @@
                 const id = parseInt(btnExc.getAttribute('data-id'), 10);
                 if (id) confirmarExcluir(id);
             }
+            // Editar: link direto, não interceptar
         });
 
         const ok = await carregarBaseSelects();
