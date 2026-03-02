@@ -56,7 +56,10 @@ class DashboardController extends BaseApiController
 
         $cartoes = $cartaoModel->listarAtivos($uid);
         $faturasProximas = $faturaModel->proximasAVencer($uid, 10);
-        $faturasEmAberto = $faturaModel->totalFaturasEmAberto($uid);
+
+        $mesFaturas = $mes >= 1 && $mes <= 12 && $ano >= 2000 && $ano <= 2100 ? $mes : (int)date('n');
+        $anoFaturas = $mes >= 1 && $mes <= 12 && $ano >= 2000 && $ano <= 2100 ? $ano : (int)date('Y');
+        $faturasDoMes = $faturaModel->totalFaturasDoMes($uid, $mesFaturas, $anoFaturas);
 
         return $this->ok([
             'Envelopes'       => $envelopes,
@@ -64,10 +67,9 @@ class DashboardController extends BaseApiController
             'CartoesCredito'  => $cartoes,
             'FaturasProximas' => $faturasProximas,
             'Totais'          => [
-                'TotalEnvelopes'    => $totalEnvelopes,
-                'TotalContas'       => $totalContas,
-                'Diferenca'         => round($totalContas - $totalEnvelopes, 2),
-                'FaturasEmAberto'   => round($faturasEmAberto, 2),
+                'TotalEnvelopes'  => $totalEnvelopes,
+                'TotalContas'     => $totalContas,
+                'FaturasDoMes'   => round($faturasDoMes, 2),
             ],
             'FiltroPeriodo'   => $dataFim ? ['mes' => $mes, 'ano' => $ano, 'dataFim' => $dataFim] : null,
         ]);

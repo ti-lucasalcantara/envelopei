@@ -30,7 +30,7 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-12 col-lg-3">
+    <div class="col-12 col-lg-4">
         <div class="card shadow-sm">
             <div class="card-body">
                 <div class="text-muted">Total Envelopes</div>
@@ -38,7 +38,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-lg-3">
+    <div class="col-12 col-lg-4">
         <div class="card shadow-sm">
             <div class="card-body">
                 <div class="text-muted">Total Contas</div>
@@ -46,19 +46,11 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-lg-3">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="text-muted">Diferença (Conciliação)</div>
-                <div class="fs-3 fw-bold" id="difConcil">—</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-3">
+    <div class="col-12 col-lg-4">
         <div class="card shadow-sm border-warning">
             <div class="card-body">
-                <div class="text-muted"><i class="fa-solid fa-credit-card me-1"></i>Faturas em aberto</div>
-                <div class="fs-3 fw-bold text-warning" id="faturasEmAberto">—</div>
+                <div class="text-muted"><i class="fa-solid fa-credit-card me-1"></i>Faturas do mês</div>
+                <div class="fs-3 fw-bold text-warning" id="faturasDoMes">—</div>
             </div>
         </div>
     </div>
@@ -69,6 +61,12 @@
     <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h6 class="mb-0"><i class="fa-solid fa-credit-card me-2"></i>Próximas faturas a vencer</h6>
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <label class="mb-0 d-flex align-items-center gap-1">
+                <span class="text-muted small">Mês vencimento:</span>
+                <select class="form-select form-select-sm" id="filtroMesVencimento" style="width:auto; min-width:120px;">
+                    <option value="">Todos</option>
+                </select>
+            </label>
             <label class="mb-0 d-flex align-items-center gap-1">
                 <span class="text-muted small">Ver fatura:</span>
                 <select class="form-select form-select-sm" id="filtroFaturaProxima" style="width:auto; min-width:180px;">
@@ -183,12 +181,10 @@
 
         const elTotalEnv = document.getElementById('totalEnvelopes');
         const elTotalContas = document.getElementById('totalContas');
-        const elDif = document.getElementById('difConcil');
-        const elFaturas = document.getElementById('faturasEmAberto');
+        const elFaturasDoMes = document.getElementById('faturasDoMes');
         if (elTotalEnv && cacheTotais.TotalEnvelopes !== undefined) elTotalEnv.innerText = fmt(cacheTotais.TotalEnvelopes);
         if (elTotalContas && cacheTotais.TotalContas !== undefined) elTotalContas.innerText = fmt(cacheTotais.TotalContas);
-        if (elDif && cacheTotais.Diferenca !== undefined) elDif.innerText = fmt(cacheTotais.Diferenca);
-        if (elFaturas && cacheTotais.FaturasEmAberto !== undefined) elFaturas.innerText = fmt(cacheTotais.FaturasEmAberto);
+        if (elFaturasDoMes && cacheTotais.FaturasDoMes !== undefined) elFaturasDoMes.innerText = fmt(cacheTotais.FaturasDoMes);
 
         renderEnvelopesCards(cacheEnvelopes);
         renderFaturasProximas(cacheFaturasProximas);
@@ -238,11 +234,13 @@
     }
 
     const baseUrlFaturas = '<?= base_url('faturas') ?>';
+    var nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
     function renderFaturasProximas(proximas) {
-        const card = document.getElementById('cardFaturas');
-        const body = document.getElementById('faturasProximasBody');
-        const selFatura = document.getElementById('filtroFaturaProxima');
+        var card = document.getElementById('cardFaturas');
+        var body = document.getElementById('faturasProximasBody');
+        var selMesVenc = document.getElementById('filtroMesVencimento');
+        var selFatura = document.getElementById('filtroFaturaProxima');
 
         if (!proximas || proximas.length === 0) {
             card.style.display = 'none';
@@ -251,27 +249,52 @@
 
         card.style.display = 'block';
 
+        var filtroMes = selMesVenc ? selMesVenc.value : '';
+        var listaPorMes = filtroMes ? proximas.filter(function(f) {
+            var d = (f.DataVencimento || '').toString().slice(0, 7);
+            return d === filtroMes;
+        }) : proximas;
+
         var filtroId = selFatura ? selFatura.value : '';
-        var listar = filtroId ? proximas.filter(function(f) { return String(f.FaturaId) === String(filtroId); }) : proximas;
+        var listar = filtroId ? listaPorMes.filter(function(f) { return String(f.FaturaId) === String(filtroId); }) : listaPorMes;
+
+        if (selMesVenc) {
+            var mesesUnicos = {};
+            proximas.forEach(function(f) {
+                var d = (f.DataVencimento || '').toString();
+                if (d.length >= 7) {
+                    var am = d.slice(0, 7);
+                    if (!mesesUnicos[am]) {
+                        var parts = am.split('-');
+                        mesesUnicos[am] = nomesMes[parseInt(parts[1], 10) - 1] + '/' + parts[0];
+                    }
+                }
+            });
+            var optsMes = Object.keys(mesesUnicos).sort().map(function(am) {
+                return '<option value="' + am + '">' + mesesUnicos[am] + '</option>';
+            }).join('');
+            selMesVenc.innerHTML = '<option value="">Todos</option>' + optsMes;
+            if (filtroMes) selMesVenc.value = filtroMes;
+        }
 
         if (selFatura) {
-            selFatura.innerHTML = '<option value="">Todas</option>' + proximas.map(function(f) {
+            selFatura.innerHTML = '<option value="">Todas</option>' + listaPorMes.map(function(f) {
                 var label = (f.CartaoNome || '') + ' ****' + (f.Ultimos4Digitos || '????') + ' - Vence ' + Envelopei.dateBR(f.DataVencimento);
                 return '<option value="' + (f.FaturaId || '') + '">' + label + '</option>';
             }).join('');
             if (filtroId) selFatura.value = filtroId;
         }
 
-        const ocultar = valoresOcultos();
-        const fmt = function(v) { return ocultar ? 'R$ ••••••' : Envelopei.money(v != null ? v : 0); };
+        var ocultar = valoresOcultos();
+        var fmt = function(v) { return ocultar ? 'R$ ••••••' : Envelopei.money(v != null ? v : 0); };
         if (listar.length === 0) {
-            body.innerHTML = '<div class="text-muted small py-2">Nenhuma fatura selecionada.</div>';
+            body.innerHTML = '<div class="text-muted small py-2">Nenhuma fatura neste filtro.</div>';
             return;
         }
         body.innerHTML = listar.map(function(f) {
             var venc = f.DataVencimento || '-';
             var hoje = new Date().toISOString().slice(0, 10);
-            var badge = venc < hoje ? 'text-bg-danger' : (venc === hoje ? 'text-bg-warning' : 'text-bg-secondary');
+            var badge = venc < hoje ? 'text-bg-danger' : (venc === hoje ? 'text-bg-warning text-dark' : 'bg-light text-dark border border-secondary');
             var linkFatura = baseUrlFaturas + '/' + (f.FaturaId || '');
             return '<div class="d-flex justify-content-between align-items-center py-2 border-bottom" data-fatura-id="' + (f.FaturaId || '') + '">' +
                 '<div><span class="fw-semibold">' + (f.CartaoNome || '') + ' ****' + (f.Ultimos4Digitos || '????') + '</span>' +
@@ -285,6 +308,12 @@
 
     document.getElementById('filtroPeriodo').addEventListener('change', function() { carregarResumo(); });
 
+    var elFiltroMesVenc = document.getElementById('filtroMesVencimento');
+    if (elFiltroMesVenc) {
+        elFiltroMesVenc.addEventListener('change', function() {
+            renderFaturasProximas(cacheFaturasProximas);
+        });
+    }
     var elFiltroFatura = document.getElementById('filtroFaturaProxima');
     if (elFiltroFatura) {
         elFiltroFatura.addEventListener('change', function() {

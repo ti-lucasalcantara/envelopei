@@ -197,6 +197,28 @@ class FaturaModel extends BaseEnvelopeiModel
     }
 
     /**
+     * Soma do ValorTotal das faturas com vencimento no mês/ano informado (do usuário).
+     */
+    public function totalFaturasDoMes(int $usuarioId, int $mes, int $ano): float
+    {
+        $dataInicio = sprintf('%04d-%02d-01', $ano, $mes);
+        $dataFim = date('Y-m-t', strtotime($dataInicio));
+
+        $db = db_connect();
+        $row = $db->table('tb_faturas f')
+            ->select('COALESCE(SUM(f.ValorTotal), 0) as Total')
+            ->join('tb_cartoes_credito cc', 'cc.CartaoCreditoId = f.CartaoCreditoId', 'inner')
+            ->where('cc.UsuarioId', $usuarioId)
+            ->where('cc.Ativo', 1)
+            ->where('f.DataVencimento >=', $dataInicio)
+            ->where('f.DataVencimento <=', $dataFim)
+            ->get()
+            ->getRowArray();
+
+        return (float)($row['Total'] ?? 0);
+    }
+
+    /**
      * Próximas faturas a vencer (pendentes).
      */
     public function proximasAVencer(int $usuarioId, int $limite = 5): array
