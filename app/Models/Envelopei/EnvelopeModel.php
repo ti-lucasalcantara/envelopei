@@ -47,17 +47,19 @@ class EnvelopeModel extends BaseEnvelopeiModel
 
     /**
      * @param int $usuarioId
-     * @param string|null $dataFim Data final para saldo (ex: último dia do mês)
-     * @param string|null $dataInicio Data inicial para ReceitasMes/DespesasMes (ex: primeiro dia do mês). Se null, ReceitasMes e DespesasMes ficam 0.
+     * @param string|null $dataFim Data final para saldo (ex: último dia do mês). Null = saldo até hoje (todo período).
+     * @param string|null $dataInicio Data inicial para ReceitasMes/DespesasMes (ex: primeiro dia do mês)
+     * @param string|null $dataFimMes Data final para ReceitasMes/DespesasMes. Se null, usa $dataFim.
      */
-    public function saldosPorUsuario(int $usuarioId, ?string $dataFim = null, ?string $dataInicio = null): array
+    public function saldosPorUsuario(int $usuarioId, ?string $dataFim = null, ?string $dataInicio = null, ?string $dataFimMes = null): array
     {
         $db = db_connect();
 
         $ateData = ($dataFim !== null && $dataFim !== '') ? ' AND l.DataLancamento <= ' . $db->escape($dataFim) : '';
+        $fimMes = ($dataFimMes !== null && $dataFimMes !== '') ? $dataFimMes : $dataFim;
         $noMes = '';
-        if ($dataInicio !== null && $dataInicio !== '' && $dataFim !== null && $dataFim !== '') {
-            $noMes = ' AND l.DataLancamento >= ' . $db->escape($dataInicio) . ' AND l.DataLancamento <= ' . $db->escape($dataFim);
+        if ($dataInicio !== null && $dataInicio !== '' && $fimMes !== null && $fimMes !== '') {
+            $noMes = ' AND l.DataLancamento >= ' . $db->escape($dataInicio) . ' AND l.DataLancamento <= ' . $db->escape($fimMes);
         }
 
         $receitasMesSel = $noMes !== '' ? ", COALESCE(SUM(CASE WHEN l.TipoLancamento = 'receita' {$noMes} THEN ie.Valor ELSE 0 END), 0) as ReceitasMes" : ", 0 as ReceitasMes";

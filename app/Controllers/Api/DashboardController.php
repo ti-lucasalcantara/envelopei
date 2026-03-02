@@ -19,9 +19,15 @@ class DashboardController extends BaseApiController
         $ano = (int)$this->request->getGet('ano') ?: (int)($p['ano'] ?? 0);
         $dataFim = null;
         $dataInicio = null;
+        $dataFimMes = null;
         if ($mes >= 1 && $mes <= 12 && $ano >= 2000 && $ano <= 2100) {
             $dataInicio = "{$ano}-{$mes}-01";
             $dataFim = date('Y-m-t', strtotime($dataInicio));
+            $dataFimMes = $dataFim;
+        } else {
+            // "Todo o período": saldo sem filtro; Receitas/Despesas do mês = mês atual
+            $dataInicio = date('Y-m-01');
+            $dataFimMes = date('Y-m-t');
         }
 
         $envModel   = new EnvelopeModel();
@@ -29,7 +35,7 @@ class DashboardController extends BaseApiController
         $cartaoModel = new CartaoCreditoModel();
         $faturaModel = new FaturaModel();
 
-        $envelopes = $envModel->saldosPorUsuario($uid, $dataFim, $dataInicio);
+        $envelopes = $envModel->saldosPorUsuario($uid, $dataFim, $dataInicio, $dataFimMes);
 
         $totalEnvelopes = 0.0;
         foreach ($envelopes as $e) {
@@ -49,7 +55,7 @@ class DashboardController extends BaseApiController
         $totalContas = round($totalContas, 2);
 
         $cartoes = $cartaoModel->listarAtivos($uid);
-        $faturasProximas = $faturaModel->proximasAVencerProximoMes($uid, 10);
+        $faturasProximas = $faturaModel->proximasAVencer($uid, 10);
         $faturasEmAberto = $faturaModel->totalFaturasEmAberto($uid);
 
         return $this->ok([
