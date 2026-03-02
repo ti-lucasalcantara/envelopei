@@ -35,6 +35,11 @@
                         <i class="fa-solid fa-percent me-2"></i>Rateio Padrão
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?= base_url('investimentos') ?>">
+                        <i class="fa-solid fa-chart-line me-2"></i>Investimentos
+                    </a>
+                </li>
 
             </ul>
 

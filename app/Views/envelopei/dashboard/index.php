@@ -26,6 +26,9 @@
         <a href="<?= base_url('transferencias/nova') ?>" class="btn btn-outline-primary">
             <i class="fa-solid fa-right-left me-2"></i>Transferir
         </a>
+        <a href="<?= base_url('investimentos/enviar') ?>" class="btn btn-outline-info">
+            <i class="fa-solid fa-chart-line me-2"></i>Enviar para investimento
+        </a>
     </div>
 </div>
 

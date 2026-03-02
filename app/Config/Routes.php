@@ -49,6 +49,10 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('receitas/nova', 'EnvelopeiWeb::novaReceita');
         $routes->get('despesas/nova', 'EnvelopeiWeb::novaDespesa');
         $routes->get('transferencias/nova', 'EnvelopeiWeb::novaTransferencia');
+        $routes->get('investimentos', 'EnvelopeiWeb::investimentos');
+        $routes->get('investimentos/enviar', 'EnvelopeiWeb::enviarParaInvestimento');
+        $routes->get('investimentos/entrada-direta', 'EnvelopeiWeb::entradaDiretaInvestimento');
+        $routes->get('investimentos/produtos/(:num)', 'EnvelopeiWeb::produtoInvestimento/$1');
     });
 });
 
@@ -121,6 +125,18 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // TRANSFERÊNCIAS
         $routes->post('transferencias/envelopes', 'TransferenciaController::entreEnvelopes');
         $routes->post('transferencias/contas', 'TransferenciaController::entreContas');
+
+        // INVESTIMENTOS
+        $routes->get('investimentos/resumo', 'InvestimentoController::resumo');
+        $routes->post('investimentos/enviar', 'InvestimentoController::enviar');
+        $routes->post('investimentos/entrada-direta', 'InvestimentoController::entradaDireta');
+        $routes->get('investimentos/produtos', 'InvestimentoController::produtosIndex');
+        $routes->post('investimentos/produtos', 'InvestimentoController::produtosStore');
+        $routes->put('investimentos/produtos/(:num)', 'InvestimentoController::produtosUpdate/$1');
+        $routes->delete('investimentos/produtos/(:num)', 'InvestimentoController::produtosDelete/$1');
+        $routes->get('investimentos/produtos/(:num)/historico', 'InvestimentoController::produtoHistorico/$1');
+        $routes->post('investimentos/produtos/(:num)/aportes', 'InvestimentoController::produtoAporte/$1');
+        $routes->post('investimentos/produtos/(:num)/rendimentos', 'InvestimentoController::produtoRendimento/$1');
 
         // DASHBOARD
         $routes->get('dashboard/resumo', 'DashboardController::resumo');

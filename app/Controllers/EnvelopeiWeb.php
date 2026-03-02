@@ -136,6 +136,45 @@ class EnvelopeiWeb extends BaseController
         ]);
     }
 
+    public function investimentos()
+    {
+        return $this->view('envelopei/investimentos/index', [
+            'titulo' => 'Investimentos - Envelopei',
+        ]);
+    }
+
+    public function enviarParaInvestimento()
+    {
+        return $this->view('envelopei/investimentos/enviar', [
+            'titulo' => 'Enviar para investimento - Envelopei',
+        ]);
+    }
+
+    public function entradaDiretaInvestimento()
+    {
+        return $this->view('envelopei/investimentos/entrada_direta', [
+            'titulo' => 'Entrada direta em investimentos - Envelopei',
+        ]);
+    }
+
+    public function produtoInvestimento($id)
+    {
+        $uid = session('UsuarioId');
+        if (!$uid) {
+            return redirect()->to(base_url('login'));
+        }
+        $id = (int)$id;
+        $model = new \App\Models\Envelopei\ProdutoInvestimentoModel();
+        $prod = $model->find($id);
+        if (!$prod || (int)$prod['UsuarioId'] !== $uid) {
+            return redirect()->to(base_url('investimentos'))->with('error', 'Produto não encontrado.');
+        }
+        return $this->view('envelopei/investimentos/produto', [
+            'titulo' => ($prod['Nome'] ?? 'Produto') . ' - Investimentos',
+            'produtoId' => $id,
+        ]);
+    }
+
     public function faturaDetalhe($id)
     {
         $uid = session('UsuarioId');
