@@ -62,6 +62,9 @@ class DespesaController extends BaseApiController
                 $faturaId = (int)$fatura['FaturaId'];
                 $faturasRecalc[$faturaId] = true;
 
+                // Data da parcela = dia 1 do mês correspondente (1/4 = 01/mar, 2/4 = 01/abr, etc.)
+                $dataParcela = sprintf('%04d-%02d-01', $mesAno['Ano'], $mesAno['Mes']);
+
                 $descParcela = $parcelas > 1 ? trim(($descricao ?? '') . ' (' . $i . '/' . $parcelas . ')') : $descricao;
                 $lid = $lancamentoModel->insert([
                     'UsuarioId'       => $uid,
@@ -70,7 +73,7 @@ class DespesaController extends BaseApiController
                     'FaturaId'        => $faturaId,
                     'TipoLancamento'  => 'despesa',
                     'Descricao'       => $descParcela ?: null,
-                    'DataLancamento'  => $dataLancamento,
+                    'DataLancamento'  => $dataParcela,
                 ]);
 
                 $itemEnvelopeModel->insert([
