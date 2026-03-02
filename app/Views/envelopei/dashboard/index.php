@@ -66,9 +66,17 @@
 
 <!-- Próximas faturas -->
 <div class="card shadow-sm mb-3" id="cardFaturas" style="display:none;">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h6 class="mb-0"><i class="fa-solid fa-credit-card me-2"></i>Próximas faturas a vencer</h6>
-        <a href="<?= base_url('faturas') ?>" class="btn btn-sm btn-outline-primary">Ver todas</a>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <label class="mb-0 d-flex align-items-center gap-1">
+                <span class="text-muted small">Ver fatura:</span>
+                <select class="form-select form-select-sm" id="filtroFaturaProxima" style="width:auto; min-width:180px;">
+                    <option value="">Todas</option>
+                </select>
+            </label>
+            <a href="<?= base_url('faturas') ?>" class="btn btn-sm btn-outline-primary">Ver todas</a>
+        </div>
     </div>
     <div class="card-body py-2" id="faturasProximasBody">
         <div class="text-muted small">Carregando…</div>
@@ -229,9 +237,12 @@
         atualizarIconeOlho();
     }
 
+    const baseUrlFaturas = '<?= base_url('faturas') ?>';
+
     function renderFaturasProximas(proximas) {
         const card = document.getElementById('cardFaturas');
         const body = document.getElementById('faturasProximasBody');
+        const selFatura = document.getElementById('filtroFaturaProxima');
 
         if (!proximas || proximas.length === 0) {
             card.style.display = 'none';
@@ -239,25 +250,47 @@
         }
 
         card.style.display = 'block';
+
+        var filtroId = selFatura ? selFatura.value : '';
+        var listar = filtroId ? proximas.filter(function(f) { return String(f.FaturaId) === String(filtroId); }) : proximas;
+
+        if (selFatura) {
+            selFatura.innerHTML = '<option value="">Todas</option>' + proximas.map(function(f) {
+                var label = (f.CartaoNome || '') + ' ****' + (f.Ultimos4Digitos || '????') + ' - Vence ' + Envelopei.dateBR(f.DataVencimento);
+                return '<option value="' + (f.FaturaId || '') + '">' + label + '</option>';
+            }).join('');
+            if (filtroId) selFatura.value = filtroId;
+        }
+
         const ocultar = valoresOcultos();
-        const fmt = (v) => ocultar ? 'R$ ••••••' : Envelopei.money(v ?? 0);
-        body.innerHTML = proximas.map(f => {
-            const venc = f.DataVencimento || '-';
-            const hoje = new Date().toISOString().slice(0, 10);
-            const badge = venc < hoje ? 'text-bg-danger' : (venc === hoje ? 'text-bg-warning' : 'text-bg-secondary');
-            return `
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <div>
-                        <span class="fw-semibold">${f.CartaoNome ?? ''} ****${f.Ultimos4Digitos ?? '????'}</span>
-                        <span class="badge ${badge} ms-2">Vence ${Envelopei.dateBR(venc)}</span>
-                    </div>
-                    <span class="fw-bold">${fmt(f.ValorTotal)}</span>
-                </div>
-            `;
+        const fmt = function(v) { return ocultar ? 'R$ ••••••' : Envelopei.money(v != null ? v : 0); };
+        if (listar.length === 0) {
+            body.innerHTML = '<div class="text-muted small py-2">Nenhuma fatura selecionada.</div>';
+            return;
+        }
+        body.innerHTML = listar.map(function(f) {
+            var venc = f.DataVencimento || '-';
+            var hoje = new Date().toISOString().slice(0, 10);
+            var badge = venc < hoje ? 'text-bg-danger' : (venc === hoje ? 'text-bg-warning' : 'text-bg-secondary');
+            var linkFatura = baseUrlFaturas + '/' + (f.FaturaId || '');
+            return '<div class="d-flex justify-content-between align-items-center py-2 border-bottom" data-fatura-id="' + (f.FaturaId || '') + '">' +
+                '<div><span class="fw-semibold">' + (f.CartaoNome || '') + ' ****' + (f.Ultimos4Digitos || '????') + '</span>' +
+                ' <span class="badge ' + badge + ' ms-2">Vence ' + Envelopei.dateBR(venc) + '</span></div>' +
+                '<div class="d-flex align-items-center gap-2">' +
+                '<span class="fw-bold">' + fmt(f.ValorTotal) + '</span>' +
+                '<a href="' + linkFatura + '" class="btn btn-sm btn-outline-primary" title="Ver detalhes da fatura">Ver fatura <i class="fa-solid fa-chevron-right ms-1"></i></a>' +
+                '</div></div>';
         }).join('');
     }
 
-    document.getElementById('filtroPeriodo').addEventListener('change', () => carregarResumo());
+    document.getElementById('filtroPeriodo').addEventListener('change', function() { carregarResumo(); });
+
+    var elFiltroFatura = document.getElementById('filtroFaturaProxima');
+    if (elFiltroFatura) {
+        elFiltroFatura.addEventListener('change', function() {
+            renderFaturasProximas(cacheFaturasProximas);
+        });
+    }
 
     document.getElementById('btnToggleValores').addEventListener('click', () => {
         const atual = valoresOcultos();

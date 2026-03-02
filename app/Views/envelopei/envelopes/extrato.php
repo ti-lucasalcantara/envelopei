@@ -23,28 +23,72 @@ $cor = $env['Cor'] ?? '';
     </div>
 </div>
 
-<div class="card shadow-sm">
+<div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center" <?= $cor ? "style='border-left: 6px solid {$cor}'" : '' ?>>
         <div>
             <h5 class="mb-0">Extrato: <?= $envNome ?></h5>
             <div class="text-muted small">Saldo atual: <span id="saldoAtual" class="fw-bold"><?= 'R$ ' . number_format($saldoAtual, 2, ',', '.') ?></span></div>
         </div>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:110px;">Data</th>
-                        <th>Tipo</th>
-                        <th>Descrição</th>
-                        <th class="text-end" style="width:130px;">Valor</th>
-                    </tr>
-                </thead>
-                <tbody id="extratoBody">
-                    <tr><td colspan="4" class="text-center text-muted py-4">Carregando…</td></tr>
-                </tbody>
-            </table>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-success bg-opacity-10 border-success border-opacity-25">
+                <h6 class="mb-0"><i class="fa-solid fa-arrow-up me-2"></i>Receitas</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:100px;">Data</th>
+                                <th>Descrição</th>
+                                <th class="text-end" style="width:120px;">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="extratoReceitasBody">
+                            <tr><td colspan="3" class="text-center text-muted py-4">Carregando…</td></tr>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="2" class="text-end">Total receitas:</th>
+                                <th class="text-end text-success" id="totalReceitas">R$ 0,00</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-danger bg-opacity-10 border-danger border-opacity-25">
+                <h6 class="mb-0"><i class="fa-solid fa-arrow-down me-2"></i>Despesas</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:100px;">Data</th>
+                                <th>Descrição</th>
+                                <th class="text-end" style="width:120px;">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="extratoDespesasBody">
+                            <tr><td colspan="3" class="text-center text-muted py-4">Carregando…</td></tr>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="2" class="text-end">Total despesas:</th>
+                                <th class="text-end text-danger" id="totalDespesas">R$ 0,00</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -56,54 +100,91 @@ $cor = $env['Cor'] ?? '';
     const envelopeId = <?= $envId ?>;
 
     function money(v) {
-        const n = Number(v ?? 0);
+        var n = (v != null && v !== '') ? Number(v) : 0;
+        if (isNaN(n)) n = 0;
         return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    async function carregarExtrato() {
-        const inicio = document.getElementById('filtroInicio').value || null;
-        const fim = document.getElementById('filtroFim').value || null;
+    function isReceita(tipo, valor) {
+        var t = (tipo || '').toLowerCase();
+        if (t === 'receita') return true;
+        if (t === 'despesa' || t === 'pgto_fatura' || t === 'pgto_parcial') return false;
+        return Number(valor || 0) > 0;
+    }
 
-        const qs = new URLSearchParams();
+    function isDespesa(tipo, valor) {
+        var t = (tipo || '').toLowerCase();
+        if (t === 'despesa' || t === 'pgto_fatura' || t === 'pgto_parcial') return true;
+        if (t === 'receita') return false;
+        return Number(valor || 0) < 0;
+    }
+
+    async function carregarExtrato() {
+        var inicio = document.getElementById('filtroInicio').value || null;
+        var fim = document.getElementById('filtroFim').value || null;
+
+        var qs = new URLSearchParams();
         if (inicio) qs.set('inicio', inicio);
         if (fim) qs.set('fim', fim);
 
-        const r = await Envelopei.api(`api/envelopes/${envelopeId}/extrato?${qs.toString()}`, 'GET');
+        var r = await Envelopei.api('api/envelopes/' + envelopeId + '/extrato?' + qs.toString(), 'GET');
 
-        if (!r?.success) {
-            Envelopei.toast(r?.message ?? 'Falha ao carregar extrato.', 'danger');
-            document.getElementById('extratoBody').innerHTML =
-                '<tr><td colspan="4" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
+        var tbodyRec = document.getElementById('extratoReceitasBody');
+        var tbodyDes = document.getElementById('extratoDespesasBody');
+        var elTotalRec = document.getElementById('totalReceitas');
+        var elTotalDes = document.getElementById('totalDespesas');
+
+        if (!r || !r.success) {
+            Envelopei.toast((r && r.message) ? r.message : 'Falha ao carregar extrato.', 'danger');
+            tbodyRec.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
+            tbodyDes.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
             return;
         }
 
-        const env = r.data?.Envelope ?? {};
-        const itens = r.data?.Itens ?? [];
+        var env = (r.data && r.data.Envelope) ? r.data.Envelope : {};
+        var itens = (r.data && r.data.Itens) ? r.data.Itens : [];
 
         document.getElementById('saldoAtual').innerText = money(env.SaldoAtual);
 
-        if (!itens.length) {
-            document.getElementById('extratoBody').innerHTML =
-                '<tr><td colspan="4" class="text-center text-muted py-4">Nenhum lançamento.</td></tr>';
-            return;
+        var receitas = itens.filter(function(i) { return isReceita(i.TipoLancamento, i.Valor); });
+        var despesas = itens.filter(function(i) { return isDespesa(i.TipoLancamento, i.Valor); });
+
+        var totalReceitas = 0;
+        receitas.forEach(function(i) { totalReceitas += Number(i.Valor) || 0; });
+        var totalDespesas = 0;
+        despesas.forEach(function(i) { totalDespesas += Math.abs(Number(i.Valor) || 0); });
+
+        if (receitas.length === 0) {
+            tbodyRec.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Nenhuma receita.</td></tr>';
+        } else {
+            tbodyRec.innerHTML = receitas.map(function(i) {
+                var v = Number(i.Valor != null ? i.Valor : 0);
+                var desc = (i.Descricao != null && i.Descricao !== '') ? i.Descricao : '-';
+                return '<tr><td class="text-mono">' + Envelopei.dateBR(i.DataLancamento) + '</td><td>' + desc + '</td><td class="text-end fw-semibold text-success">' + money(v) + '</td></tr>';
+            }).join('');
         }
 
-        document.getElementById('extratoBody').innerHTML = itens.map(i => {
-            const v = Number(i.Valor ?? 0);
-            const badge = v < 0 ? 'bg-light border border-danger text-danger' : 'bg-light border border-success text-success';
-            const valorTotal = Math.abs(Number(i.Valor) || 0);
-            const valorPago = Number(i.ValorPago) || 0;
-            const pendente = i.FaturaId && valorPago < valorTotal;
-            const pendenteLabel = pendente ? ' <span class="badge bg-light border border-warning text-warning small">cartão pendente</span>' : '';
-            return `
-                <tr class="${pendente ? 'tr-marker-warning' : ''}">
-                    <td class="text-mono">${Envelopei.dateBR(i.DataLancamento)}</td>
-                    <td><span class="badge ${badge}">${i.TipoLancamento ?? '-'}</span>${pendenteLabel}</td>
-                    <td>${i.Descricao ?? '-'}</td>
-                    <td class="text-end fw-semibold">${money(v)}</td>
-                </tr>
-            `;
-        }).join('');
+        if (despesas.length === 0) {
+            tbodyDes.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Nenhuma despesa.</td></tr>';
+        } else {
+            tbodyDes.innerHTML = despesas.map(function(i) {
+                var v = Number(i.Valor != null ? i.Valor : 0);
+                var valorAbs = Math.abs(v);
+                var valorTotal = Math.abs(Number(i.Valor) || 0);
+                var valorPago = Number(i.ValorPago) || 0;
+                var pendente = i.FaturaId && valorPago < valorTotal;
+                var pendenteLabel = pendente ? ' <span class="badge bg-warning text-dark small">cartão pendente</span>' : '';
+                var tipoLabel = (i.TipoLancamento || 'despesa') === 'pgto_fatura' ? 'Pagamento fatura' : ((i.TipoLancamento || '') === 'pgto_parcial' ? 'Pagamento parcial' : '');
+                var descPart = (i.Descricao != null && i.Descricao !== '') ? i.Descricao : tipoLabel;
+                if (descPart == null || descPart === '') descPart = '-';
+                var desc = descPart + pendenteLabel;
+                var trClass = pendente ? 'tr-marker-warning' : '';
+                return '<tr class="' + trClass + '"><td class="text-mono">' + Envelopei.dateBR(i.DataLancamento) + '</td><td>' + desc + '</td><td class="text-end fw-semibold text-danger">' + money(valorAbs) + '</td></tr>';
+            }).join('');
+        }
+
+        elTotalRec.textContent = money(totalReceitas);
+        elTotalDes.textContent = money(totalDespesas);
     }
 
     function setFiltrosPadrao() {
@@ -114,10 +195,15 @@ $cor = $env['Cor'] ?? '';
         document.getElementById('filtroFim').value = now.toISOString().slice(0, 10);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function init() {
         setFiltrosPadrao();
         carregarExtrato();
         document.getElementById('btnFiltrar').addEventListener('click', carregarExtrato);
-    });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 </script>
 <?= $this->endSection() ?>
