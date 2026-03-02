@@ -305,6 +305,8 @@
             body.innerHTML = '<div class="text-muted small py-2">Nenhuma fatura neste filtro.</div>';
             return;
         }
+        var totalValor = 0;
+        listar.forEach(function(f) { totalValor += Number(f.ValorTotal) || 0; });
         body.innerHTML = listar.map(function(f) {
             var venc = f.DataVencimento || '-';
             var hoje = new Date().toISOString().slice(0, 10);
@@ -317,7 +319,8 @@
                 '<span class="fw-bold">' + fmt(f.ValorTotal) + '</span>' +
                 '<a href="' + linkFatura + '" class="btn btn-sm btn-outline-primary" title="Ver detalhes da fatura">Ver fatura <i class="fa-solid fa-chevron-right ms-1"></i></a>' +
                 '</div></div>';
-        }).join('');
+        }).join('') +
+            '<div class="d-flex justify-content-between align-items-center py-2 pt-3 border-top bg-light mt-1 px-2 rounded"><span class="fw-semibold text-muted">Total</span><span class="fw-bold">' + fmt(totalValor) + '</span></div>';
     }
 
     document.getElementById('filtroPeriodo').addEventListener('change', function() { carregarResumo(); });
