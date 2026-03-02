@@ -18,8 +18,10 @@ class DashboardController extends BaseApiController
         $mes = (int)$this->request->getGet('mes') ?: (int)($p['mes'] ?? 0);
         $ano = (int)$this->request->getGet('ano') ?: (int)($p['ano'] ?? 0);
         $dataFim = null;
+        $dataInicio = null;
         if ($mes >= 1 && $mes <= 12 && $ano >= 2000 && $ano <= 2100) {
-            $dataFim = date('Y-m-t', strtotime("{$ano}-{$mes}-01"));
+            $dataInicio = "{$ano}-{$mes}-01";
+            $dataFim = date('Y-m-t', strtotime($dataInicio));
         }
 
         $envModel   = new EnvelopeModel();
@@ -27,7 +29,7 @@ class DashboardController extends BaseApiController
         $cartaoModel = new CartaoCreditoModel();
         $faturaModel = new FaturaModel();
 
-        $envelopes = $envModel->saldosPorUsuario($uid, $dataFim);
+        $envelopes = $envModel->saldosPorUsuario($uid, $dataFim, $dataInicio);
 
         $totalEnvelopes = 0.0;
         foreach ($envelopes as $e) {

@@ -133,10 +133,11 @@
         const ocultar = valoresOcultos();
         grid.innerHTML = envelopes.map(e => {
             const saldo = Number(e.Saldo ?? 0);
-            const gastosCartao = Number(e.GastosComCartao ?? 0);
-            const saldoApos = Number(e.SaldoAposPagamento ?? saldo);
+            const receitasMes = Number(e.ReceitasMes ?? 0);
+            const despesasMes = Number(e.DespesasMes ?? 0);
             const cor = e.Cor ? `style="border-left:6px solid ${e.Cor};"` : '';
             const badge = saldo < 0 ? 'text-bg-danger' : 'text-bg-success';
+            const saldoClasse = saldo < 0 ? 'text-danger' : 'text-dark';
 
             return `
             <div class="col-12 col-md-6 col-lg-4">
@@ -150,15 +151,15 @@
                                 </div>
                                 <span class="badge ${badge}">•</span>
                             </div>
-                            <div class="mt-2 fs-4 fw-bold">${formatValor(saldo)}</div>
+                            <div class="mt-2 fs-4 fw-bold ${saldoClasse}">${formatValor(saldo)}</div>
                             <div class="mt-2 pt-2 border-top small">
                                 <div class="d-flex justify-content-between text-muted">
-                                    <span><i class="fa-solid fa-credit-card me-1"></i>Gastos com cartão</span>
-                                    <span>${formatValor(gastosCartao)}</span>
+                                    <span>Receitas do mês</span>
+                                    <span>${formatValor(receitasMes)}</span>
                                 </div>
-                                <div class="d-flex justify-content-between mt-1 fw-semibold">
-                                    <span>Saldo após pagamento cartão</span>
-                                    <span class="${saldoApos < 0 ? 'text-danger' : ''}">${formatValor(saldoApos)}</span>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span class="text-muted">Despesas do mês</span>
+                                    <span>${formatValor(despesasMes)}</span>
                                 </div>
                             </div>
                         </div>
