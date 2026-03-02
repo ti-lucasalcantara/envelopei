@@ -20,7 +20,10 @@
             <h4 class="mb-0">Investimentos</h4>
             <div class="text-muted">Acompanhe seus produtos e rentabilidade</div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button type="button" class="btn btn-outline-secondary" id="btnToggleValores" title="Ocultar/mostrar valores">
+                <i class="fa-solid fa-eye" id="iconToggleValores"></i>
+            </button>
             <a href="<?= base_url('investimentos/enviar') ?>" class="btn btn-info">
                 <i class="fa-solid fa-paper-plane me-2"></i>Enviar para investimento
             </a>
@@ -211,6 +214,36 @@
 
 <?= $this->section('js') ?>
 <script>
+    const STORAGE_OCULTAR_VALORES = 'envelopei_ocultarValores';
+    let cacheConta = null;
+    let cacheTotais = null;
+    let cacheProdutos = [];
+
+    function valoresOcultos() {
+        return localStorage.getItem(STORAGE_OCULTAR_VALORES) === 'true';
+    }
+
+    function formatValor(v) {
+        return valoresOcultos() ? 'R$ ••••••' : Envelopei.money(v ?? 0);
+    }
+
+    function formatPct(pct) {
+        return valoresOcultos() ? '•••%' : (pct >= 0 ? '+' : '') + Number(pct).toFixed(2) + '%';
+    }
+
+    function atualizarIconeOlho() {
+        const icon = document.getElementById('iconToggleValores');
+        const btn = document.getElementById('btnToggleValores');
+        if (!icon || !btn) return;
+        if (valoresOcultos()) {
+            icon.className = 'fa-solid fa-eye-slash';
+            btn.title = 'Mostrar valores';
+        } else {
+            icon.className = 'fa-solid fa-eye';
+            btn.title = 'Ocultar valores';
+        }
+    }
+
     const TIPO_ICONS = {
         CDB: 'fa-building-columns',
         LCI: 'fa-file-invoice',
@@ -257,6 +290,54 @@
         return '<i class="fa-solid fa-minus me-1"></i>';
     }
 
+    function aplicarVisibilidadeValores() {
+        if (cacheConta == null && cacheTotais == null && cacheProdutos.length === 0) return;
+        const fmt = formatValor;
+        const fmtPct = formatPct;
+        if (cacheConta != null) {
+            const el = document.getElementById('saldoContaInvestimento');
+            if (el) el.textContent = fmt(cacheConta.Saldo);
+        }
+        if (cacheTotais != null) {
+            const elA = document.getElementById('totalAplicado');
+            const elAt = document.getElementById('totalAtual');
+            const elV = document.getElementById('variacaoValor');
+            const elP = document.getElementById('variacaoPct');
+            if (elA) elA.textContent = fmt(cacheTotais.TotalAplicado);
+            if (elAt) elAt.textContent = fmt(cacheTotais.TotalAtual);
+            const variacao = Number(cacheTotais.Variacao ?? 0);
+            const pct = Number(cacheTotais.Percentual ?? 0);
+            if (elV) elV.textContent = valoresOcultos() ? 'R$ ••••••' : (variacao >= 0 ? '+' : '') + Envelopei.money(variacao);
+            if (elP) elP.innerHTML = pctIcon(pct) + '<span class="' + pctClass(pct) + '">' + fmtPct(pct) + '</span>';
+        }
+        if (cacheProdutos.length > 0) {
+            const tbody = document.getElementById('tbodyProdutos');
+            if (tbody) {
+                tbody.innerHTML = cacheProdutos.map(p => {
+                    const aplicado = Number(p.ValorAplicado ?? 0);
+                    const atual = Number(p.ValorAtual ?? 0);
+                    const variacaoP = aplicado !== 0 ? (((atual - aplicado) / aplicado) * 100) : 0;
+                    const cls = pctClass(variacaoP);
+                    return `
+                    <tr>
+                        <td>${iconTipo(p.TipoProduto)}</td>
+                        <td><strong>${(p.Nome || '').replace(/</g, '&lt;')}</strong></td>
+                        <td>${TIPO_LABELS[p.TipoProduto] || p.TipoProduto}</td>
+                        <td class="text-end">${fmt(aplicado)}</td>
+                        <td class="text-end">${fmt(atual)}</td>
+                        <td class="text-end ${cls}">${pctIcon(variacaoP)} ${fmtPct(variacaoP)}</td>
+                        <td class="text-end">
+                            <a href="<?= base_url('investimentos/produtos/') ?>${p.ProdutoInvestimentoId}" class="btn btn-sm btn-outline-info me-1" title="Ver histórico"><i class="fa-solid fa-eye"></i></a>
+                            <a href="<?= base_url('investimentos/produtos/') ?>${p.ProdutoInvestimentoId}" class="btn btn-sm btn-outline-success me-1" title="Aportar"><i class="fa-solid fa-plus"></i></a>
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="abrirEditar(${p.ProdutoInvestimentoId}, '${(p.Nome || '').replace(/'/g, "\\'")}', '${p.TipoProduto || 'Outros'}', ${aplicado}, ${atual})" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirProduto(${p.ProdutoInvestimentoId}, '${(p.Nome || '').replace(/'/g, "\\'")}')" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    }
+
     async function carregarResumo() {
         const r = await Envelopei.api('api/investimentos/resumo', 'GET');
         if (!r?.success) {
@@ -264,18 +345,18 @@
             return;
         }
 
-        const conta = r.data?.ContaInvestimento ?? {};
-        const totais = r.data?.Totais ?? {};
-        const produtos = r.data?.Produtos ?? [];
+        cacheConta = r.data?.ContaInvestimento ?? {};
+        cacheTotais = r.data?.Totais ?? {};
+        cacheProdutos = r.data?.Produtos ?? [];
 
-        document.getElementById('saldoContaInvestimento').textContent = Envelopei.money(conta.Saldo);
-        document.getElementById('totalAplicado').textContent = Envelopei.money(totais.TotalAplicado);
-        document.getElementById('totalAtual').textContent = Envelopei.money(totais.TotalAtual);
+        document.getElementById('saldoContaInvestimento').textContent = formatValor(cacheConta.Saldo);
+        document.getElementById('totalAplicado').textContent = formatValor(cacheTotais.TotalAplicado);
+        document.getElementById('totalAtual').textContent = formatValor(cacheTotais.TotalAtual);
 
-        const variacao = Number(totais.Variacao ?? 0);
-        const pct = Number(totais.Percentual ?? 0);
-        document.getElementById('variacaoValor').textContent = (variacao >= 0 ? '+' : '') + Envelopei.money(variacao);
-        document.getElementById('variacaoPct').innerHTML = pctIcon(pct) + '<span class="' + pctClass(pct) + '">' + (pct >= 0 ? '+' : '') + pct + '%</span>';
+        const variacao = Number(cacheTotais.Variacao ?? 0);
+        const pct = Number(cacheTotais.Percentual ?? 0);
+        document.getElementById('variacaoValor').textContent = valoresOcultos() ? 'R$ ••••••' : (variacao >= 0 ? '+' : '') + Envelopei.money(variacao);
+        document.getElementById('variacaoPct').innerHTML = pctIcon(pct) + '<span class="' + pctClass(pct) + '">' + formatPct(pct) + '</span>';
         const cardVar = document.getElementById('cardVariacao');
         const iconVar = document.getElementById('iconVariacao');
         cardVar.className = 'invest-icon-card bg-opacity-10 ' + (pct > 0 ? 'bg-success' : pct < 0 ? 'bg-danger' : 'bg-secondary');
@@ -284,31 +365,11 @@
         iconVar.classList.remove('text-warning');
 
         const tbody = document.getElementById('tbodyProdutos');
-        if (!produtos.length) {
+        if (!cacheProdutos.length) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa-solid fa-inbox me-2"></i>Nenhum produto cadastrado. Clique em &quot;Novo produto&quot; para adicionar.</td></tr>';
-            return;
+        } else {
+            aplicarVisibilidadeValores();
         }
-        tbody.innerHTML = produtos.map(p => {
-            const aplicado = Number(p.ValorAplicado ?? 0);
-            const atual = Number(p.ValorAtual ?? 0);
-            const variacaoP = aplicado !== 0 ? (((atual - aplicado) / aplicado) * 100) : 0;
-            const cls = pctClass(variacaoP);
-            return `
-            <tr>
-                <td>${iconTipo(p.TipoProduto)}</td>
-                <td><strong>${(p.Nome || '').replace(/</g, '&lt;')}</strong></td>
-                <td>${TIPO_LABELS[p.TipoProduto] || p.TipoProduto}</td>
-                <td class="text-end">${Envelopei.money(aplicado)}</td>
-                <td class="text-end">${Envelopei.money(atual)}</td>
-                <td class="text-end ${cls}">${pctIcon(variacaoP)} ${(variacaoP >= 0 ? '+' : '') + variacaoP.toFixed(2)}%</td>
-                <td class="text-end">
-                    <a href="<?= base_url('investimentos/produtos/') ?>${p.ProdutoInvestimentoId}" class="btn btn-sm btn-outline-info me-1" title="Ver histórico"><i class="fa-solid fa-eye"></i></a>
-                    <a href="<?= base_url('investimentos/produtos/') ?>${p.ProdutoInvestimentoId}" class="btn btn-sm btn-outline-success me-1" title="Aportar"><i class="fa-solid fa-plus"></i></a>
-                    <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="abrirEditar(${p.ProdutoInvestimentoId}, '${(p.Nome || '').replace(/'/g, "\\'")}', '${p.TipoProduto || 'Outros'}', ${aplicado}, ${atual})" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirProduto(${p.ProdutoInvestimentoId}, '${(p.Nome || '').replace(/'/g, "\\'")}')" title="Excluir"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
     }
 
     window.abrirEditar = function(id, nome, tipo, aplicado, atual) {
@@ -356,6 +417,16 @@
         carregarResumo();
     });
 
-    document.addEventListener('DOMContentLoaded', carregarResumo);
+    document.getElementById('btnToggleValores').addEventListener('click', function() {
+        const atual = valoresOcultos();
+        localStorage.setItem(STORAGE_OCULTAR_VALORES, (!atual).toString());
+        atualizarIconeOlho();
+        aplicarVisibilidadeValores();
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        atualizarIconeOlho();
+        carregarResumo();
+    });
 </script>
 <?= $this->endSection() ?>

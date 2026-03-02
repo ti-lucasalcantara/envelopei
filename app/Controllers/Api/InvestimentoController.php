@@ -384,8 +384,10 @@ class InvestimentoController extends BaseApiController
         ]);
 
         $novoAplicado = (float)$prod['ValorAplicado'] + $valor;
+        $novoAtual    = (float)$prod['ValorAtual'] + $valor; // aporte entra em valor aplicado e em valor atual
         $prodModel->update($id, [
             'ValorAplicado'   => round($novoAplicado, 2),
+            'ValorAtual'      => round($novoAtual, 2),
             'DataAtualizacao' => date('Y-m-d H:i:s'),
         ]);
 
@@ -448,5 +450,187 @@ class InvestimentoController extends BaseApiController
         }
 
         return $this->ok([], 'Rendimento registrado.', 201);
+    }
+
+    /** Editar aporte (ajusta ValorAplicado do produto). */
+    public function produtoAporteUpdate($produtoId, $aporteId)
+    {
+        $p   = $this->getJson();
+        $uid = $this->requireUsuarioId($p);
+        if (!$uid) return $this->fail('Usuário não informado.', [], 401);
+
+        $produtoId = (int)$produtoId;
+        $aporteId  = (int)$aporteId;
+
+        $prodModel = new ProdutoInvestimentoModel();
+        $prod = $prodModel->find($produtoId);
+        if (!$prod || (int)$prod['UsuarioId'] !== $uid) {
+            return $this->fail('Produto não encontrado.', [], 404);
+        }
+
+        $aporteModel = new AporteInvestimentoModel();
+        $aporte = $aporteModel->find($aporteId);
+        if (!$aporte || (int)$aporte['ProdutoInvestimentoId'] !== $produtoId || (int)$aporte['UsuarioId'] !== $uid) {
+            return $this->fail('Aporte não encontrado.', [], 404);
+        }
+
+        $valorNovo   = (float)($p['Valor'] ?? 0);
+        $dataAporte  = $this->normalizeDate($p['DataAporte'] ?? null);
+        $descricao   = trim($p['Descricao'] ?? 'Aporte');
+        if ($valorNovo <= 0) return $this->fail('Valor do aporte deve ser maior que zero.', [], 422);
+        $valorNovo = round($valorNovo, 2);
+
+        $valorAntigo = (float)$aporte['Valor'];
+        $diff = round($valorNovo - $valorAntigo, 2);
+
+        $db = db_connect();
+        $db->transStart();
+
+        $aporteModel->update($aporteId, [
+            'Valor'      => $valorNovo,
+            'DataAporte' => $dataAporte,
+            'Descricao'  => $descricao ?: null,
+        ]);
+
+        $novoAplicado = (float)$prod['ValorAplicado'] + $diff;
+        $novoAtual    = (float)$prod['ValorAtual'] + $diff; // mesma diferença no valor atual
+        $prodModel->update($produtoId, [
+            'ValorAplicado'   => round($novoAplicado, 2),
+            'ValorAtual'      => round($novoAtual, 2),
+            'DataAtualizacao' => date('Y-m-d H:i:s'),
+        ]);
+
+        $db->transComplete();
+        if ($db->transStatus() === false) return $this->fail('Falha ao atualizar aporte.', [], 500);
+        return $this->ok([], 'Aporte atualizado.');
+    }
+
+    /** Excluir aporte (reverte ValorAplicado e ValorAtual do produto). */
+    public function produtoAporteDelete($produtoId, $aporteId)
+    {
+        $p   = $this->getJson();
+        $uid = $this->requireUsuarioId($p);
+        if (!$uid) return $this->fail('Usuário não informado.', [], 401);
+
+        $produtoId = (int)$produtoId;
+        $aporteId  = (int)$aporteId;
+
+        $prodModel = new ProdutoInvestimentoModel();
+        $prod = $prodModel->find($produtoId);
+        if (!$prod || (int)$prod['UsuarioId'] !== $uid) {
+            return $this->fail('Produto não encontrado.', [], 404);
+        }
+
+        $aporteModel = new AporteInvestimentoModel();
+        $aporte = $aporteModel->find($aporteId);
+        if (!$aporte || (int)$aporte['ProdutoInvestimentoId'] !== $produtoId || (int)$aporte['UsuarioId'] !== $uid) {
+            return $this->fail('Aporte não encontrado.', [], 404);
+        }
+
+        $valor = (float)$aporte['Valor'];
+        $novoAplicado = (float)$prod['ValorAplicado'] - $valor;
+        $novoAtual    = (float)$prod['ValorAtual'] - $valor; // aporte sai do valor atual também
+
+        $db = db_connect();
+        $db->transStart();
+        $aporteModel->delete($aporteId);
+        $prodModel->update($produtoId, [
+            'ValorAplicado'   => round($novoAplicado, 2),
+            'ValorAtual'      => round(max(0, $novoAtual), 2),
+            'DataAtualizacao' => date('Y-m-d H:i:s'),
+        ]);
+        $db->transComplete();
+
+        if ($db->transStatus() === false) return $this->fail('Falha ao excluir aporte.', [], 500);
+        return $this->ok([], 'Aporte excluído.');
+    }
+
+    /** Editar rendimento (ajusta ValorAtual do produto). */
+    public function produtoRendimentoUpdate($produtoId, $rendimentoId)
+    {
+        $p   = $this->getJson();
+        $uid = $this->requireUsuarioId($p);
+        if (!$uid) return $this->fail('Usuário não informado.', [], 401);
+
+        $produtoId   = (int)$produtoId;
+        $rendimentoId = (int)$rendimentoId;
+
+        $prodModel = new ProdutoInvestimentoModel();
+        $prod = $prodModel->find($produtoId);
+        if (!$prod || (int)$prod['UsuarioId'] !== $uid) {
+            return $this->fail('Produto não encontrado.', [], 404);
+        }
+
+        $rendModel = new RendimentoInvestimentoModel();
+        $rend = $rendModel->find($rendimentoId);
+        if (!$rend || (int)$rend['ProdutoInvestimentoId'] !== $produtoId || (int)$rend['UsuarioId'] !== $uid) {
+            return $this->fail('Rendimento não encontrado.', [], 404);
+        }
+
+        $valorNovo    = (float)($p['Valor'] ?? 0);
+        $dataRend     = $this->normalizeDate($p['DataRendimento'] ?? null);
+        $descricao    = trim($p['Descricao'] ?? 'Rendimento');
+        if ($valorNovo == 0) return $this->fail('Informe um valor diferente de zero.', [], 422);
+        $valorNovo = round($valorNovo, 2);
+
+        $valorAntigo = (float)$rend['Valor'];
+        $diff = round($valorNovo - $valorAntigo, 2);
+
+        $db = db_connect();
+        $db->transStart();
+
+        $rendModel->update($rendimentoId, [
+            'Valor'          => $valorNovo,
+            'DataRendimento' => $dataRend,
+            'Descricao'      => $descricao ?: null,
+        ]);
+
+        $novoAtual = (float)$prod['ValorAtual'] + $diff;
+        $prodModel->update($produtoId, [
+            'ValorAtual'      => round($novoAtual, 2),
+            'DataAtualizacao' => date('Y-m-d H:i:s'),
+        ]);
+
+        $db->transComplete();
+        if ($db->transStatus() === false) return $this->fail('Falha ao atualizar rendimento.', [], 500);
+        return $this->ok([], 'Rendimento atualizado.');
+    }
+
+    /** Excluir rendimento (reverte ValorAtual do produto). */
+    public function produtoRendimentoDelete($produtoId, $rendimentoId)
+    {
+        $p   = $this->getJson();
+        $uid = $this->requireUsuarioId($p);
+        if (!$uid) return $this->fail('Usuário não informado.', [], 401);
+
+        $produtoId   = (int)$produtoId;
+        $rendimentoId = (int)$rendimentoId;
+
+        $prodModel = new ProdutoInvestimentoModel();
+        $prod = $prodModel->find($produtoId);
+        if (!$prod || (int)$prod['UsuarioId'] !== $uid) {
+            return $this->fail('Produto não encontrado.', [], 404);
+        }
+
+        $rendModel = new RendimentoInvestimentoModel();
+        $rend = $rendModel->find($rendimentoId);
+        if (!$rend || (int)$rend['ProdutoInvestimentoId'] !== $produtoId || (int)$rend['UsuarioId'] !== $uid) {
+            return $this->fail('Rendimento não encontrado.', [], 404);
+        }
+
+        $valor = (float)$rend['Valor'];
+        $novoAtual = (float)$prod['ValorAtual'] - $valor;
+
+        $db = db_connect();
+        $db->transStart();
+        $rendModel->delete($rendimentoId);
+        $prodModel->update($produtoId, [
+            'ValorAtual'      => round($novoAtual, 2),
+            'DataAtualizacao' => date('Y-m-d H:i:s'),
+        ]);
+        $db->transComplete();
+
+        if ($db->transStatus() === false) return $this->fail('Falha ao excluir rendimento.', [], 500);
+        return $this->ok([], 'Rendimento excluído.');
     }
 }

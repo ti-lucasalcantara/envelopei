@@ -136,7 +136,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->delete('investimentos/produtos/(:num)', 'InvestimentoController::produtosDelete/$1');
         $routes->get('investimentos/produtos/(:num)/historico', 'InvestimentoController::produtoHistorico/$1');
         $routes->post('investimentos/produtos/(:num)/aportes', 'InvestimentoController::produtoAporte/$1');
+        $routes->put('investimentos/produtos/(:num)/aportes/(:num)', 'InvestimentoController::produtoAporteUpdate/$1/$2');
+        $routes->delete('investimentos/produtos/(:num)/aportes/(:num)', 'InvestimentoController::produtoAporteDelete/$1/$2');
         $routes->post('investimentos/produtos/(:num)/rendimentos', 'InvestimentoController::produtoRendimento/$1');
+        $routes->put('investimentos/produtos/(:num)/rendimentos/(:num)', 'InvestimentoController::produtoRendimentoUpdate/$1/$2');
+        $routes->delete('investimentos/produtos/(:num)/rendimentos/(:num)', 'InvestimentoController::produtoRendimentoDelete/$1/$2');
 
         // DASHBOARD
         $routes->get('dashboard/resumo', 'DashboardController::resumo');

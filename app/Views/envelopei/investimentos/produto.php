@@ -93,15 +93,17 @@
                             <th>Data</th>
                             <th>Descrição</th>
                             <th class="text-end">Valor</th>
+                            <th class="text-end" style="width:100px">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyAportes">
-                        <tr><td colspan="3" class="text-center text-muted py-3">Carregando…</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted py-3">Carregando…</td></tr>
                     </tbody>
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="2" class="text-end">Total aportado</th>
                             <th class="text-end" id="footTotalAportes">—</th>
+                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -123,15 +125,17 @@
                             <th>Data</th>
                             <th>Descrição</th>
                             <th class="text-end">Valor</th>
+                            <th class="text-end" style="width:100px">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyRendimentos">
-                        <tr><td colspan="3" class="text-center text-muted py-3">Carregando…</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted py-3">Carregando…</td></tr>
                     </tbody>
                     <tfoot class="table-light">
                         <tr>
                             <th colspan="2" class="text-end">Total rendimentos</th>
                             <th class="text-end" id="footTotalRendimentos">—</th>
+                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -191,7 +195,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Valor (lucro ou perda)</label>
-                        <input type="text" class="form-control input-money-signed" id="rendValor" placeholder="0,00 ou -0,00" required>
+                        <input type="text" class="form-control input-valor-assinado" id="rendValor" placeholder="Ex: 100,00 ou -50,00 (perda)" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
@@ -202,6 +206,71 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success" id="btnSalvarRendimento"><i class="fa-solid fa-check me-2"></i>Registrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Aporte -->
+<div class="modal fade" id="modalEditarAporte" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-pen me-2"></i>Editar aporte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editAporteId">
+                <div class="mb-3">
+                    <label class="form-label">Data</label>
+                    <input type="date" class="form-control" id="editAporteData">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Valor</label>
+                    <input type="text" class="form-control input-money" id="editAporteValor" placeholder="0,00" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <input type="text" class="form-control" id="editAporteDesc">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnAtualizarAporte"><i class="fa-solid fa-check me-2"></i>Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Rendimento -->
+<div class="modal fade" id="modalEditarRendimento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-pen me-2"></i>Editar rendimento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info small">
+                    <i class="fa-solid fa-info-circle me-2"></i>Valor <strong>positivo</strong> = lucro, <strong>negativo</strong> = perda.
+                </div>
+                <input type="hidden" id="editRendimentoId">
+                <div class="mb-3">
+                    <label class="form-label">Data</label>
+                    <input type="date" class="form-control" id="editRendimentoData">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Valor (lucro ou perda)</label>
+                    <input type="text" class="form-control input-valor-assinado" id="editRendimentoValor" placeholder="0,00 ou -0,00" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <input type="text" class="form-control" id="editRendimentoDesc">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnAtualizarRendimento"><i class="fa-solid fa-check me-2"></i>Salvar</button>
             </div>
         </div>
     </div>
@@ -250,6 +319,8 @@
         const aportes = r.data?.Aportes ?? [];
         const rendimentos = r.data?.Rendimentos ?? [];
         const totais = r.data?.Totais ?? {};
+        window._cacheAportes = aportes;
+        window._cacheRendimentos = rendimentos;
 
         document.getElementById('produtoNome').textContent = prod.Nome || 'Produto';
         document.getElementById('produtoTipo').textContent = TIPO_LABELS[prod.TipoProduto] || prod.TipoProduto;
@@ -269,13 +340,17 @@
         document.getElementById('footTotalAportes').textContent = Envelopei.money(totais.TotalAportes);
         const tbodyA = document.getElementById('tbodyAportes');
         if (aportes.length === 0) {
-            tbodyA.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3"><i class="fa-solid fa-inbox me-2"></i>Nenhum aporte registrado.</td></tr>';
+            tbodyA.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><i class="fa-solid fa-inbox me-2"></i>Nenhum aporte registrado.</td></tr>';
         } else {
             tbodyA.innerHTML = aportes.map(a => `
                 <tr>
                     <td>${Envelopei.dateBR(a.DataAporte)}</td>
                     <td>${(a.Descricao || '—').replace(/</g, '&lt;')}</td>
                     <td class="text-end">${Envelopei.money(a.Valor)}</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="abrirEditarAporte(${a.AporteId})" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirAporte(${a.AporteId})" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                    </td>
                 </tr>`).join('');
         }
 
@@ -287,7 +362,7 @@
         footRend.className = 'text-end ' + (totalRend >= 0 ? 'text-success' : 'text-danger');
         const tbodyR = document.getElementById('tbodyRendimentos');
         if (rendimentos.length === 0) {
-            tbodyR.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3"><i class="fa-solid fa-inbox me-2"></i>Nenhum rendimento registrado.</td></tr>';
+            tbodyR.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><i class="fa-solid fa-inbox me-2"></i>Nenhum rendimento registrado.</td></tr>';
         } else {
             tbodyR.innerHTML = rendimentos.map(r => {
                 const v = Number(r.Valor);
@@ -296,9 +371,21 @@
                     <td>${Envelopei.dateBR(r.DataRendimento)}</td>
                     <td>${(r.Descricao || '—').replace(/</g, '&lt;')}</td>
                     <td class="text-end ${cls}">${v >= 0 ? '+' : ''}${Envelopei.money(v)}</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="abrirEditarRendimento(${r.RendimentoId})" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirRendimento(${r.RendimentoId})" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                    </td>
                 </tr>`;
             }).join('');
         }
+    }
+
+    function formatMoneySigned(num) {
+        const n = Number(num);
+        if (isNaN(n)) return '';
+        const neg = n < 0;
+        const s = Envelopei.formatMoneyForInput(Math.abs(n));
+        return neg ? '-' + s : s;
     }
 
     document.getElementById('aporteData').value = new Date().toISOString().slice(0, 10);
@@ -332,16 +419,15 @@
         carregarHistorico();
     });
 
-    // Máscara para valor com sinal (rendimento)
-    (function() {
-        const input = document.getElementById('rendValor');
+    /** Máscara para valor com sinal (permite negativo). Detectar sinal ANTES de remover não-dígitos. */
+    function applySignedMoneyMask(input) {
         if (!input || input._signedMask) return;
         input._signedMask = true;
         input.setAttribute('inputmode', 'decimal');
         input.addEventListener('input', function() {
-            let v = this.value.replace(/^\-/, 'N').replace(/\D/g, '');
-            const neg = v.startsWith('N');
-            v = v.replace(/^N/, '');
+            const raw = this.value;
+            const neg = raw.trim().startsWith('-');
+            let v = raw.replace(/^-/, '').replace(/\D/g, '');
             if (v.length > 12) v = v.slice(0, 12);
             if (v.length === 0) { this.value = neg ? '-' : ''; return; }
             const intRaw = v.length <= 2 ? '0' : v.slice(0, -2);
@@ -349,7 +435,71 @@
             const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + v.slice(-2).padStart(2, '0');
             this.value = (neg ? '-' : '') + formatted;
         });
-    })();
+    }
+
+    document.querySelectorAll('.input-valor-assinado').forEach(applySignedMoneyMask);
+
+    window.abrirEditarAporte = function(aporteId) {
+        const a = (window._cacheAportes || []).find(function(x) { return x.AporteId == aporteId; });
+        if (!a) return;
+        document.getElementById('editAporteId').value = a.AporteId;
+        document.getElementById('editAporteData').value = (a.DataAporte || '').toString().slice(0, 10);
+        document.getElementById('editAporteValor').value = Envelopei.formatMoneyForInput(Number(a.Valor));
+        document.getElementById('editAporteDesc').value = a.Descricao || '';
+        new bootstrap.Modal(document.getElementById('modalEditarAporte')).show();
+    };
+
+    window.abrirEditarRendimento = function(rendimentoId) {
+        const r = (window._cacheRendimentos || []).find(function(x) { return x.RendimentoId == rendimentoId; });
+        if (!r) return;
+        document.getElementById('editRendimentoId').value = r.RendimentoId;
+        document.getElementById('editRendimentoData').value = (r.DataRendimento || '').toString().slice(0, 10);
+        document.getElementById('editRendimentoValor').value = formatMoneySigned(Number(r.Valor));
+        document.getElementById('editRendimentoDesc').value = r.Descricao || '';
+        new bootstrap.Modal(document.getElementById('modalEditarRendimento')).show();
+    };
+
+    window.excluirAporte = async function(aporteId) {
+        if (!confirm('Excluir este aporte? O valor será descontado do total aplicado.')) return;
+        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/aportes/' + aporteId, 'DELETE', {});
+        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao excluir.', 'danger');
+        Envelopei.toast('Aporte excluído.', 'success');
+        carregarHistorico();
+    };
+
+    window.excluirRendimento = async function(rendimentoId) {
+        if (!confirm('Excluir este rendimento? O valor será revertido no valor atual.')) return;
+        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/rendimentos/' + rendimentoId, 'DELETE', {});
+        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao excluir.', 'danger');
+        Envelopei.toast('Rendimento excluído.', 'success');
+        carregarHistorico();
+    };
+
+    document.getElementById('btnAtualizarAporte').addEventListener('click', async function() {
+        const aporteId = document.getElementById('editAporteId').value;
+        const DataAporte = document.getElementById('editAporteData').value;
+        const Valor = Envelopei.parseMoney(document.getElementById('editAporteValor').value);
+        const Descricao = document.getElementById('editAporteDesc').value.trim();
+        if (!Valor || Valor <= 0) return Envelopei.toast('Informe o valor do aporte.', 'danger');
+        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/aportes/' + aporteId, 'PUT', { DataAporte, Valor, Descricao });
+        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao atualizar.', 'danger');
+        Envelopei.toast('Aporte atualizado!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalEditarAporte')).hide();
+        carregarHistorico();
+    });
+
+    document.getElementById('btnAtualizarRendimento').addEventListener('click', async function() {
+        const rendimentoId = document.getElementById('editRendimentoId').value;
+        const DataRendimento = document.getElementById('editRendimentoData').value;
+        const Valor = parseMoneySigned(document.getElementById('editRendimentoValor').value);
+        const Descricao = document.getElementById('editRendimentoDesc').value.trim();
+        if (Valor === 0) return Envelopei.toast('Informe um valor (positivo ou negativo).', 'danger');
+        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/rendimentos/' + rendimentoId, 'PUT', { DataRendimento, Valor, Descricao });
+        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao atualizar.', 'danger');
+        Envelopei.toast('Rendimento atualizado!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalEditarRendimento')).hide();
+        carregarHistorico();
+    });
 
     document.addEventListener('DOMContentLoaded', carregarHistorico);
 </script>
