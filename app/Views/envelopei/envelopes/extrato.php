@@ -46,15 +46,17 @@ $cor = $env['Cor'] ?? '';
                                 <th style="width:100px;">Data</th>
                                 <th>Descrição</th>
                                 <th class="text-end" style="width:120px;">Valor</th>
+                                <th class="text-center" style="width:120px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="extratoReceitasBody">
-                            <tr><td colspan="3" class="text-center text-muted py-4">Carregando…</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-4">Carregando…</td></tr>
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
                                 <th colspan="2" class="text-end">Total receitas:</th>
                                 <th class="text-end text-success" id="totalReceitas">R$ 0,00</th>
+                                <th></th>
                             </tr>
                         </tfoot>
                     </table>
@@ -75,15 +77,17 @@ $cor = $env['Cor'] ?? '';
                                 <th style="width:100px;">Data</th>
                                 <th>Descrição</th>
                                 <th class="text-end" style="width:120px;">Valor</th>
+                                <th class="text-center" style="width:120px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="extratoDespesasBody">
-                            <tr><td colspan="3" class="text-center text-muted py-4">Carregando…</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-4">Carregando…</td></tr>
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
                                 <th colspan="2" class="text-end">Total despesas:</th>
                                 <th class="text-end text-danger" id="totalDespesas">R$ 0,00</th>
+                                <th></th>
                             </tr>
                         </tfoot>
                     </table>
@@ -98,6 +102,7 @@ $cor = $env['Cor'] ?? '';
 <?= $this->section('js') ?>
 <script>
     const envelopeId = <?= $envId ?>;
+    const baseUrlLancamentosEditar = '<?= base_url('lancamentos/editar') ?>';
 
     function money(v) {
         var n = (v != null && v !== '') ? Number(v) : 0;
@@ -136,8 +141,8 @@ $cor = $env['Cor'] ?? '';
 
         if (!r || !r.success) {
             Envelopei.toast((r && r.message) ? r.message : 'Falha ao carregar extrato.', 'danger');
-            tbodyRec.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
-            tbodyDes.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
+            tbodyRec.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
+            tbodyDes.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Erro ao carregar.</td></tr>';
             return;
         }
 
@@ -155,17 +160,20 @@ $cor = $env['Cor'] ?? '';
         despesas.forEach(function(i) { totalDespesas += Math.abs(Number(i.Valor) || 0); });
 
         if (receitas.length === 0) {
-            tbodyRec.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Nenhuma receita.</td></tr>';
+            tbodyRec.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma receita.</td></tr>';
         } else {
             tbodyRec.innerHTML = receitas.map(function(i) {
                 var v = Number(i.Valor != null ? i.Valor : 0);
                 var desc = (i.Descricao != null && i.Descricao !== '') ? i.Descricao : '-';
-                return '<tr><td class="text-mono">' + Envelopei.dateBR(i.DataLancamento) + '</td><td>' + desc + '</td><td class="text-end fw-semibold text-success">' + money(v) + '</td></tr>';
+                var lid = (i.LancamentoId != null) ? i.LancamentoId : '';
+                var acoes = '<a href="' + baseUrlLancamentosEditar + '/' + lid + '" class="btn btn-sm btn-outline-primary me-1" title="Editar"><i class="fa-solid fa-pen"></i></a>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger btn-excluir-lanc" data-id="' + lid + '" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>';
+                return '<tr><td class="text-mono">' + Envelopei.dateBR(i.DataLancamento) + '</td><td>' + desc + '</td><td class="text-end fw-semibold text-success">' + money(v) + '</td><td class="text-center">' + acoes + '</td></tr>';
             }).join('');
         }
 
         if (despesas.length === 0) {
-            tbodyDes.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Nenhuma despesa.</td></tr>';
+            tbodyDes.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma despesa.</td></tr>';
         } else {
             tbodyDes.innerHTML = despesas.map(function(i) {
                 var v = Number(i.Valor != null ? i.Valor : 0);
@@ -179,12 +187,34 @@ $cor = $env['Cor'] ?? '';
                 if (descPart == null || descPart === '') descPart = '-';
                 var desc = descPart + pendenteLabel;
                 var trClass = pendente ? 'tr-marker-warning' : '';
-                return '<tr class="' + trClass + '"><td class="text-mono">' + Envelopei.dateBR(i.DataLancamento) + '</td><td>' + desc + '</td><td class="text-end fw-semibold text-danger">' + money(valorAbs) + '</td></tr>';
+                var lid = (i.LancamentoId != null) ? i.LancamentoId : '';
+                var acoes = '<a href="' + baseUrlLancamentosEditar + '/' + lid + '" class="btn btn-sm btn-outline-primary me-1" title="Editar"><i class="fa-solid fa-pen"></i></a>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger btn-excluir-lanc" data-id="' + lid + '" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>';
+                return '<tr class="' + trClass + '"><td class="text-mono">' + Envelopei.dateBR(i.DataLancamento) + '</td><td>' + desc + '</td><td class="text-end fw-semibold text-danger">' + money(valorAbs) + '</td><td class="text-center">' + acoes + '</td></tr>';
             }).join('');
         }
+        document.querySelectorAll('.btn-excluir-lanc').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var id = this.getAttribute('data-id');
+                if (!id) return;
+                if (!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return;
+                excluirLancamento(id);
+            });
+        });
 
         elTotalRec.textContent = money(totalReceitas);
         elTotalDes.textContent = money(totalDespesas);
+    }
+
+    async function excluirLancamento(lancamentoId) {
+        var r = await Envelopei.api('api/lancamentos/' + lancamentoId, 'DELETE');
+        if (r && r.success) {
+            Envelopei.toast('Lançamento excluído.', 'success');
+            carregarExtrato();
+        } else {
+            Envelopei.toast((r && r.message) ? r.message : 'Erro ao excluir.', 'danger');
+        }
     }
 
     function setFiltrosPadrao() {
