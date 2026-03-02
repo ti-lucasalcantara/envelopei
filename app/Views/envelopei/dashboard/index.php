@@ -101,6 +101,7 @@
     let cacheCartoes = [];
     let cacheTotais = {};
     let cacheFaturasProximas = [];
+    var inicialMesVencimento = true;
 
     function valoresOcultos() {
         return localStorage.getItem(STORAGE_OCULTAR_VALORES) === 'true';
@@ -259,6 +260,7 @@
         var listar = filtroId ? listaPorMes.filter(function(f) { return String(f.FaturaId) === String(filtroId); }) : listaPorMes;
 
         if (selMesVenc) {
+            var oldMesVal = selMesVenc.value;
             var mesesUnicos = {};
             proximas.forEach(function(f) {
                 var d = (f.DataVencimento || '').toString();
@@ -275,16 +277,17 @@
             }).join('');
             selMesVenc.innerHTML = '<option value="">Todos</option>' + optsMes;
             var mesCorrente = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
-            if (filtroMes) {
-                selMesVenc.value = filtroMes;
-            } else if (mesesUnicos[mesCorrente]) {
+            if (inicialMesVencimento && mesesUnicos[mesCorrente]) {
                 selMesVenc.value = mesCorrente;
+                inicialMesVencimento = false;
                 filtroMes = mesCorrente;
                 listaPorMes = proximas.filter(function(f) {
                     var d = (f.DataVencimento || '').toString().slice(0, 7);
                     return d === filtroMes;
                 });
                 listar = filtroId ? listaPorMes.filter(function(f) { return String(f.FaturaId) === String(filtroId); }) : listaPorMes;
+            } else {
+                selMesVenc.value = oldMesVal || '';
             }
         }
 
