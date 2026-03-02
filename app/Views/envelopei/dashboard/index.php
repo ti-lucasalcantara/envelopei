@@ -274,7 +274,18 @@
                 return '<option value="' + am + '">' + mesesUnicos[am] + '</option>';
             }).join('');
             selMesVenc.innerHTML = '<option value="">Todos</option>' + optsMes;
-            if (filtroMes) selMesVenc.value = filtroMes;
+            var mesCorrente = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+            if (filtroMes) {
+                selMesVenc.value = filtroMes;
+            } else if (mesesUnicos[mesCorrente]) {
+                selMesVenc.value = mesCorrente;
+                filtroMes = mesCorrente;
+                listaPorMes = proximas.filter(function(f) {
+                    var d = (f.DataVencimento || '').toString().slice(0, 7);
+                    return d === filtroMes;
+                });
+                listar = filtroId ? listaPorMes.filter(function(f) { return String(f.FaturaId) === String(filtroId); }) : listaPorMes;
+            }
         }
 
         if (selFatura) {
