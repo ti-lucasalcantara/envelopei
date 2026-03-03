@@ -64,6 +64,7 @@ class EnvelopeModel extends BaseEnvelopeiModel
 
         $receitasMesSel = $noMes !== '' ? ", COALESCE(SUM(CASE WHEN l.TipoLancamento = 'receita' {$noMes} THEN ie.Valor ELSE 0 END), 0) as ReceitasMes" : ", 0 as ReceitasMes";
         $despesasMesSel = $noMes !== '' ? ", COALESCE(SUM(CASE WHEN l.TipoLancamento = 'despesa' {$noMes} THEN ABS(ie.Valor) ELSE 0 END), 0) as DespesasMes" : ", 0 as DespesasMes";
+        $despesasPendentesSel = ", COALESCE(SUM(CASE WHEN l.TipoLancamento = 'despesa' AND ie.FaturaId IS NOT NULL AND COALESCE(f.Pago, 0) = 0 AND l.DataLancamento <= CURDATE() THEN GREATEST(0, ABS(ie.Valor) - COALESCE(ie.ValorPago, 0)) ELSE 0 END), 0) as DespesasPendentes";
 
         $sql = "
             SELECT e.EnvelopeId, e.Nome, e.Cor, e.Ordem,
@@ -71,6 +72,7 @@ class EnvelopeModel extends BaseEnvelopeiModel
                    COALESCE(SUM(CASE WHEN l.LancamentoId IS NOT NULL {$ateData} AND ie.FaturaId IS NOT NULL AND COALESCE(f.Pago, 0) = 0 THEN GREATEST(0, ABS(ie.Valor) - COALESCE(ie.ValorPago, 0)) ELSE 0 END), 0) as GastosComCartao
                    {$receitasMesSel}
                    {$despesasMesSel}
+                   {$despesasPendentesSel}
             FROM tb_envelopes e
             LEFT JOIN tb_itens_envelope ie ON ie.EnvelopeId = e.EnvelopeId
             LEFT JOIN tb_lancamentos l ON l.LancamentoId = ie.LancamentoId
@@ -88,6 +90,7 @@ class EnvelopeModel extends BaseEnvelopeiModel
             $r['SaldoAposPagamento'] = round($saldo - $gastosCartao, 2);
             $r['ReceitasMes'] = round((float)($r['ReceitasMes'] ?? 0), 2);
             $r['DespesasMes'] = round((float)($r['DespesasMes'] ?? 0), 2);
+            $r['DespesasPendentes'] = round((float)($r['DespesasPendentes'] ?? 0), 2);
         }
         unset($r);
 
