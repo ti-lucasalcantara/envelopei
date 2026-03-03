@@ -31,4 +31,10 @@ class RendimentoInvestimentoModel extends BaseEnvelopeiModel
                     ->first();
         return (float)($row['Valor'] ?? 0);
     }
+
+    public function totalRendimentosUsuario(int $usuarioId): float
+    {
+        $row = $this->where('UsuarioId', $usuarioId)->selectSum('Valor')->first();
+        return (float)($row['Valor'] ?? 0);
+    }
 }

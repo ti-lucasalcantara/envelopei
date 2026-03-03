@@ -33,11 +33,21 @@ class InvestimentoController extends BaseApiController
         $produtos     = $prodModel->listarPorUsuario($uid);
         $totais       = $prodModel->totaisPorUsuario($uid);
 
+        // Saldo disponível = saldo da conta menos o total já aplicado nos produtos
+        $totalAplicado = (float)($totais['TotalAplicado'] ?? 0);
+        $saldoDisponivel = round($saldoContaInvestimento - $totalAplicado, 2);
+
+        $rendModel = new RendimentoInvestimentoModel();
+        foreach ($produtos as &$p) {
+            $p['TotalRendimentos'] = round($rendModel->totalRendimentosProduto((int)$p['ProdutoInvestimentoId']), 2);
+        }
+        unset($p);
+
         return $this->ok([
             'ContaInvestimento' => [
                 'ContaId' => (int)$contaInvestimento['ContaId'],
                 'Nome'    => $contaInvestimento['Nome'],
-                'Saldo'   => round($saldoContaInvestimento, 2),
+                'Saldo'   => $saldoDisponivel,
             ],
             'ContasOrigem' => $contasOrigem,
             'Envelopes'    => $envelopes,
@@ -297,7 +307,18 @@ class InvestimentoController extends BaseApiController
             return $this->fail('Produto não encontrado.', [], 404);
         }
 
+        $db = db_connect();
+        $db->transStart();
+
+        (new AporteInvestimentoModel())->where('ProdutoInvestimentoId', $id)->delete();
+        (new RendimentoInvestimentoModel())->where('ProdutoInvestimentoId', $id)->delete();
         $model->delete($id);
+
+        $db->transComplete();
+        if ($db->transStatus() === false) {
+            return $this->fail('Falha ao remover produto.', [], 500);
+        }
+
         return $this->ok([], 'Produto removido.');
     }
 

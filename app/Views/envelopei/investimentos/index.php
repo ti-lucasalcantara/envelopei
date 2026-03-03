@@ -9,6 +9,11 @@
     .invest-page .pct-perda { color: #dc3545; font-weight: 600; }
     .invest-page .pct-zero { color: #6c757d; font-weight: 600; }
     .invest-page .table-produtos td { vertical-align: middle; }
+    .invest-page #modalExcluirProduto .modal-content {
+        border-radius: 12px;
+        border: 0;
+        box-shadow: 0 10px 40px rgba(0,0,0,.15);
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -41,7 +46,7 @@
         <div class="card-body">
             <h6 class="text-muted mb-2"><i class="fa-solid fa-piggy-bank me-2"></i>Saldo na conta de investimentos</h6>
             <div class="fs-3 fw-bold text-info" id="saldoContaInvestimento">—</div>
-            <p class="small text-muted mb-0">Valor disponível (envios + entradas diretas)</p>
+            <p class="small text-muted mb-0">Valor disponível para aplicar (saldo da conta menos o já aplicado em produtos)</p>
         </div>
     </div>
 
@@ -76,13 +81,12 @@
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="invest-icon-card bg-warning bg-opacity-10" id="cardVariacao">
-                        <i class="fa-solid fa-percent text-warning" id="iconVariacao"></i>
+                    <div class="invest-icon-card bg-info bg-opacity-10" id="cardTotalRendimentos">
+                        <i class="fa-solid fa-chart-line text-info" id="iconTotalRendimentos"></i>
                     </div>
                     <div>
-                        <div class="text-muted small">Variação</div>
-                        <div class="fs-4 fw-bold" id="variacaoValor">—</div>
-                        <div class="small fw-semibold" id="variacaoPct">—</div>
+                        <div class="text-muted small">Total de rendimentos</div>
+                        <div class="fs-4 fw-bold" id="totalRendimentosValor">—</div>
                     </div>
                 </div>
             </div>
@@ -104,7 +108,7 @@
                             <th>Tipo</th>
                             <th class="text-end">Aplicado</th>
                             <th class="text-end">Atual</th>
-                            <th class="text-end">Variação %</th>
+                            <th class="text-end">Total de rendimentos</th>
                             <th style="width:180px" class="text-end">Ações</th>
                         </tr>
                     </thead>
@@ -210,6 +214,35 @@
     </div>
 </div>
 
+<!-- Modal Excluir Produto (estilo igual ao de lançamentos) -->
+<div class="modal fade" id="modalExcluirProduto" tabindex="-1" aria-labelledby="modalExcluirProdutoTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger fw-semibold" id="modalExcluirProdutoTitle">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Excluir produto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <input type="hidden" id="excluirProdutoId">
+                <p class="mb-2">Tem certeza que deseja excluir o produto <strong id="excluirProdutoNome"></strong>?</p>
+                <p class="text-muted small mb-0">Todos os aportes e rendimentos vinculados serão perdidos.</p>
+                <div class="alert alert-warning small mt-3 mb-0 d-flex align-items-start">
+                    <i class="fa-solid fa-circle-info me-2 mt-1"></i>
+                    <span>Não é possível desfazer.</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnExcluirProdutoAgora">
+                    <i class="fa-solid fa-trash me-2"></i>Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('js') ?>
@@ -301,14 +334,11 @@
         if (cacheTotais != null) {
             const elA = document.getElementById('totalAplicado');
             const elAt = document.getElementById('totalAtual');
-            const elV = document.getElementById('variacaoValor');
-            const elP = document.getElementById('variacaoPct');
+            const elR = document.getElementById('totalRendimentosValor');
             if (elA) elA.textContent = fmt(cacheTotais.TotalAplicado);
             if (elAt) elAt.textContent = fmt(cacheTotais.TotalAtual);
-            const variacao = Number(cacheTotais.Variacao ?? 0);
-            const pct = Number(cacheTotais.Percentual ?? 0);
-            if (elV) elV.textContent = valoresOcultos() ? 'R$ ••••••' : (variacao >= 0 ? '+' : '') + Envelopei.money(variacao);
-            if (elP) elP.innerHTML = pctIcon(pct) + '<span class="' + pctClass(pct) + '">' + fmtPct(pct) + '</span>';
+            const totalRend = Number(cacheTotais.TotalRendimentos ?? 0);
+            if (elR) elR.textContent = valoresOcultos() ? 'R$ ••••••' : (totalRend >= 0 ? '+' : '') + Envelopei.money(totalRend);
         }
         if (cacheProdutos.length > 0) {
             const tbody = document.getElementById('tbodyProdutos');
@@ -316,8 +346,9 @@
                 tbody.innerHTML = cacheProdutos.map(p => {
                     const aplicado = Number(p.ValorAplicado ?? 0);
                     const atual = Number(p.ValorAtual ?? 0);
-                    const variacaoP = aplicado !== 0 ? (((atual - aplicado) / aplicado) * 100) : 0;
-                    const cls = pctClass(variacaoP);
+                    const totalRend = Number(p.TotalRendimentos ?? 0);
+                    const clsRend = totalRend > 0 ? 'pct-lucro' : totalRend < 0 ? 'pct-perda' : 'pct-zero';
+                    const fmtRend = valoresOcultos() ? 'R$ ••••••' : (totalRend >= 0 ? '+' : '') + Envelopei.money(totalRend);
                     return `
                     <tr>
                         <td>${iconTipo(p.TipoProduto)}</td>
@@ -325,7 +356,7 @@
                         <td>${TIPO_LABELS[p.TipoProduto] || p.TipoProduto}</td>
                         <td class="text-end">${fmt(aplicado)}</td>
                         <td class="text-end">${fmt(atual)}</td>
-                        <td class="text-end ${cls}">${pctIcon(variacaoP)} ${fmtPct(variacaoP)}</td>
+                        <td class="text-end ${clsRend}">${fmtRend}</td>
                         <td class="text-end">
                             <a href="<?= base_url('investimentos/produtos/') ?>${p.ProdutoInvestimentoId}" class="btn btn-sm btn-outline-info me-1" title="Ver histórico"><i class="fa-solid fa-eye"></i></a>
                             <a href="<?= base_url('investimentos/produtos/') ?>${p.ProdutoInvestimentoId}" class="btn btn-sm btn-outline-success me-1" title="Aportar"><i class="fa-solid fa-plus"></i></a>
@@ -353,16 +384,14 @@
         document.getElementById('totalAplicado').textContent = formatValor(cacheTotais.TotalAplicado);
         document.getElementById('totalAtual').textContent = formatValor(cacheTotais.TotalAtual);
 
-        const variacao = Number(cacheTotais.Variacao ?? 0);
-        const pct = Number(cacheTotais.Percentual ?? 0);
-        document.getElementById('variacaoValor').textContent = valoresOcultos() ? 'R$ ••••••' : (variacao >= 0 ? '+' : '') + Envelopei.money(variacao);
-        document.getElementById('variacaoPct').innerHTML = pctIcon(pct) + '<span class="' + pctClass(pct) + '">' + formatPct(pct) + '</span>';
-        const cardVar = document.getElementById('cardVariacao');
-        const iconVar = document.getElementById('iconVariacao');
-        cardVar.className = 'invest-icon-card bg-opacity-10 ' + (pct > 0 ? 'bg-success' : pct < 0 ? 'bg-danger' : 'bg-secondary');
-        cardVar.classList.remove('bg-warning');
-        iconVar.className = 'fa-solid fa-percent ' + (pct > 0 ? 'text-success' : pct < 0 ? 'text-danger' : 'text-secondary');
-        iconVar.classList.remove('text-warning');
+        const totalRend = Number(cacheTotais.TotalRendimentos ?? 0);
+        document.getElementById('totalRendimentosValor').textContent = valoresOcultos() ? 'R$ ••••••' : (totalRend >= 0 ? '+' : '') + Envelopei.money(totalRend);
+        const cardRend = document.getElementById('cardTotalRendimentos');
+        const iconRend = document.getElementById('iconTotalRendimentos');
+        cardRend.className = 'invest-icon-card bg-opacity-10 ' + (totalRend > 0 ? 'bg-success' : totalRend < 0 ? 'bg-danger' : 'bg-secondary');
+        cardRend.classList.remove('bg-info');
+        iconRend.className = 'fa-solid fa-chart-line ' + (totalRend > 0 ? 'text-success' : totalRend < 0 ? 'text-danger' : 'text-secondary');
+        iconRend.classList.remove('text-info');
 
         const tbody = document.getElementById('tbodyProdutos');
         if (!cacheProdutos.length) {
@@ -381,51 +410,62 @@
         new bootstrap.Modal(document.getElementById('modalEditarProduto')).show();
     };
 
-    window.excluirProduto = async function(id, nome) {
-        if (!confirm('Excluir o produto “‘ + nome + ’”? Esta ação não pode ser desfeita.')) return;
-        const r = await Envelopei.api('api/investimentos/produtos/' + id, 'DELETE', {});
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao excluir.', 'danger');
-        Envelopei.toast('Produto excluído.', 'success');
-        carregarResumo();
+    window.excluirProduto = function(id, nome) {
+        document.getElementById('excluirProdutoId').value = id;
+        document.getElementById('excluirProdutoNome').textContent = nome ? String(nome).replace(/</g, '&lt;') : '';
+        new bootstrap.Modal(document.getElementById('modalExcluirProduto')).show();
     };
-
-    document.getElementById('btnCriarProduto').addEventListener('click', async function() {
-        const Nome = document.getElementById('prodNome').value.trim();
-        const TipoProduto = document.getElementById('prodTipo').value;
-        const ValorAplicado = Envelopei.parseMoney(document.getElementById('prodValorAplicado').value);
-        const ValorAtual = Envelopei.parseMoney(document.getElementById('prodValorAtual').value) || ValorAplicado;
-        if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');
-        const r = await Envelopei.api('api/investimentos/produtos', 'POST', { Nome, TipoProduto, ValorAplicado, ValorAtual });
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao criar.', 'danger');
-        Envelopei.toast('Produto criado!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('modalNovoProduto')).hide();
-        document.getElementById('formNovoProduto').reset();
-        carregarResumo();
-    });
-
-    document.getElementById('btnSalvarProduto').addEventListener('click', async function() {
-        const id = document.getElementById('editProdutoId').value;
-        const Nome = document.getElementById('editProdNome').value.trim();
-        const TipoProduto = document.getElementById('editProdTipo').value;
-        const ValorAplicado = Envelopei.parseMoney(document.getElementById('editProdValorAplicado').value);
-        const ValorAtual = Envelopei.parseMoney(document.getElementById('editProdValorAtual').value);
-        if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');
-        const r = await Envelopei.api('api/investimentos/produtos/' + id, 'PUT', { Nome, TipoProduto, ValorAplicado, ValorAtual });
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao salvar.', 'danger');
-        Envelopei.toast('Produto atualizado!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('modalEditarProduto')).hide();
-        carregarResumo();
-    });
-
-    document.getElementById('btnToggleValores').addEventListener('click', function() {
-        const atual = valoresOcultos();
-        localStorage.setItem(STORAGE_OCULTAR_VALORES, (!atual).toString());
-        atualizarIconeOlho();
-        aplicarVisibilidadeValores();
-    });
 
     document.addEventListener('DOMContentLoaded', function() {
         atualizarIconeOlho();
+        var btnExcluir = document.getElementById('btnExcluirProdutoAgora');
+        if (btnExcluir) btnExcluir.addEventListener('click', async function() {
+            var id = document.getElementById('excluirProdutoId').value;
+            if (!id) return;
+            var r = await Envelopei.api('api/investimentos/produtos/' + id, 'DELETE', {});
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao excluir.', 'danger');
+            Envelopei.toast('Produto excluído.', 'success');
+            var m = document.getElementById('modalExcluirProduto');
+            if (m && bootstrap.Modal.getInstance(m)) bootstrap.Modal.getInstance(m).hide();
+            carregarResumo();
+        });
+        var btnCriar = document.getElementById('btnCriarProduto');
+        if (btnCriar) btnCriar.addEventListener('click', async function() {
+            var Nome = document.getElementById('prodNome').value.trim();
+            var TipoProduto = document.getElementById('prodTipo').value;
+            var ValorAplicado = Envelopei.parseMoney(document.getElementById('prodValorAplicado').value);
+            var ValorAtual = Envelopei.parseMoney(document.getElementById('prodValorAtual').value) || ValorAplicado;
+            if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');
+            var r = await Envelopei.api('api/investimentos/produtos', 'POST', { Nome: Nome, TipoProduto: TipoProduto, ValorAplicado: ValorAplicado, ValorAtual: ValorAtual });
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao criar.', 'danger');
+            Envelopei.toast('Produto criado!', 'success');
+            var m = document.getElementById('modalNovoProduto');
+            if (m && bootstrap.Modal.getInstance(m)) bootstrap.Modal.getInstance(m).hide();
+            document.getElementById('formNovoProduto').reset();
+            carregarResumo();
+        });
+        var btnSalvar = document.getElementById('btnSalvarProduto');
+        if (btnSalvar) btnSalvar.addEventListener('click', async function() {
+            var id = document.getElementById('editProdutoId').value;
+            var Nome = document.getElementById('editProdNome').value.trim();
+            var TipoProduto = document.getElementById('editProdTipo').value;
+            var ValorAplicado = Envelopei.parseMoney(document.getElementById('editProdValorAplicado').value);
+            var ValorAtual = Envelopei.parseMoney(document.getElementById('editProdValorAtual').value);
+            if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');
+            var r = await Envelopei.api('api/investimentos/produtos/' + id, 'PUT', { Nome: Nome, TipoProduto: TipoProduto, ValorAplicado: ValorAplicado, ValorAtual: ValorAtual });
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao salvar.', 'danger');
+            Envelopei.toast('Produto atualizado!', 'success');
+            var m = document.getElementById('modalEditarProduto');
+            if (m && bootstrap.Modal.getInstance(m)) bootstrap.Modal.getInstance(m).hide();
+            carregarResumo();
+        });
+        var btnToggle = document.getElementById('btnToggleValores');
+        if (btnToggle) btnToggle.addEventListener('click', function() {
+            var atual = valoresOcultos();
+            localStorage.setItem(STORAGE_OCULTAR_VALORES, (!atual).toString());
+            atualizarIconeOlho();
+            aplicarVisibilidadeValores();
+        });
         carregarResumo();
     });
 </script>

@@ -53,6 +53,7 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('investimentos/enviar', 'EnvelopeiWeb::enviarParaInvestimento');
         $routes->get('investimentos/entrada-direta', 'EnvelopeiWeb::entradaDiretaInvestimento');
         $routes->get('investimentos/produtos/(:num)', 'EnvelopeiWeb::produtoInvestimento/$1');
+        $routes->get('alterar-senha', 'EnvelopeiWeb::alterarSenha');
     });
 });
 
@@ -72,6 +73,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->group('', ['filter' => 'authEnvelopei'], function ($routes) {
         $routes->post('logout', 'AuthController::logout');
         $routes->get('usuario', 'AuthController::me');
+        $routes->post('alterar-senha', 'AuthController::alterarSenha');
 
         // CONTAS
         $routes->get('contas', 'ContaController::index');

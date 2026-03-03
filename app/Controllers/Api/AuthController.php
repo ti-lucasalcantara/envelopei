@@ -55,4 +55,39 @@ class AuthController extends BaseApiController
 
         return $this->ok($usuario);
     }
+
+    /**
+     * Altera a senha do usuário logado.
+     * Body: SenhaAtual, SenhaNova
+     */
+    public function alterarSenha()
+    {
+        $uid = $this->usuarioIdFromRequest();
+        if (!$uid) return $this->fail('Não autenticado.', [], 401);
+
+        $p = $this->getJson();
+        $senhaAtual = (string)($p['SenhaAtual'] ?? '');
+        $senhaNova  = (string)($p['SenhaNova'] ?? '');
+
+        if ($senhaAtual === '') {
+            return $this->fail('Informe a senha atual.', [], 422);
+        }
+        if (strlen($senhaNova) < 6) {
+            return $this->fail('A nova senha deve ter no mínimo 6 caracteres.', [], 422);
+        }
+
+        $usuarioModel = new UsuarioModel();
+        $usuario = $usuarioModel->find($uid);
+        if (!$usuario) return $this->fail('Usuário não encontrado.', [], 404);
+
+        if (!password_verify($senhaAtual, $usuario['SenhaHash'])) {
+            return $this->fail('Senha atual incorreta.', [], 400);
+        }
+
+        $usuarioModel->update($uid, [
+            'SenhaHash' => password_hash($senhaNova, PASSWORD_DEFAULT),
+        ]);
+
+        return $this->ok([], 'Senha alterada com sucesso.');
+    }
 }

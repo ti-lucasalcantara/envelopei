@@ -45,11 +45,13 @@ class ProdutoInvestimentoModel extends BaseEnvelopeiModel
             $aplicado += (float)($r['ValorAplicado'] ?? 0);
             $atual += (float)($r['ValorAtual'] ?? 0);
         }
+        $totalRendimentos = (new RendimentoInvestimentoModel())->totalRendimentosUsuario($usuarioId);
         return [
-            'TotalAplicado' => round($aplicado, 2),
-            'TotalAtual'    => round($atual, 2),
-            'Variacao'      => round($atual - $aplicado, 2),
-            'Percentual'    => $aplicado != 0 ? round((($atual - $aplicado) / $aplicado * 100), 2) : 0.0,
+            'TotalAplicado'     => round($aplicado, 2),
+            'TotalAtual'        => round($atual, 2),
+            'TotalRendimentos'   => round($totalRendimentos, 2),
+            'Variacao'          => round($atual - $aplicado, 2),
+            'Percentual'         => $aplicado != 0 ? round((($atual - $aplicado) / $aplicado * 100), 2) : 0.0,
         ];
     }
 }

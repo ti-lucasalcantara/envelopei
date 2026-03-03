@@ -43,7 +43,10 @@
 
             </ul>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 align-items-center">
+                <a class="btn btn-outline-light btn-sm" href="<?= base_url('alterar-senha') ?>">
+                    <i class="fa-solid fa-key me-2"></i>Alterar senha
+                </a>
                 <button class="btn btn-outline-light btn-sm" id="btnLogout">
                     <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
                 </button>

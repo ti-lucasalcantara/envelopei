@@ -10,6 +10,14 @@
     .produto-page .table-hist th { font-weight: 600; }
     .produto-page .rend-positivo { color: #198754; }
     .produto-page .rend-negativo { color: #dc3545; }
+    .produto-page #modalExcluirAporte .modal-content,
+    .produto-page #modalExcluirRendimento .modal-content {
+        border-radius: 12px;
+        border: 0;
+        box-shadow: 0 10px 40px rgba(0,0,0,.15);
+    }
+    .produto-page .btn { cursor: pointer; }
+    .produto-page .modal .btn { pointer-events: auto; }
 </style>
 <?= $this->endSection() ?>
 
@@ -66,14 +74,27 @@
         <div class="col-12 col-md-4">
             <div class="card shadow-sm h-100">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <div class="invest-icon-card bg-opacity-10" id="cardVariacaoIcon">
-                        <i class="fa-solid fa-percent" id="iconVariacao"></i>
+                    <div class="invest-icon-card bg-opacity-10" id="cardTotalRendimentosIcon">
+                        <i class="fa-solid fa-chart-line" id="iconTotalRendimentos"></i>
                     </div>
                     <div>
-                        <div class="text-muted small">Variação</div>
-                        <div class="fs-4 fw-bold" id="cardVariacaoValor">—</div>
-                        <div class="small fw-semibold" id="cardVariacaoPct">—</div>
+                        <div class="text-muted small">Total de rendimentos</div>
+                        <div class="fs-4 fw-bold" id="cardTotalRendimentosValor">—</div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card card-module shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fa-solid fa-chart-area me-2"></i>Evolução do investimento</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartEvolucao" height="80"></canvas>
                 </div>
             </div>
         </div>
@@ -276,9 +297,68 @@
     </div>
 </div>
 
+<!-- Modal Excluir Aporte (estilo igual ao de lançamentos) -->
+<div class="modal fade" id="modalExcluirAporte" tabindex="-1" aria-labelledby="modalExcluirAporteTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger fw-semibold" id="modalExcluirAporteTitle">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Excluir aporte
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <input type="hidden" id="excluirAporteId">
+                <p class="mb-2">Tem certeza que deseja excluir este aporte?</p>
+                <p class="text-muted small mb-0">O valor será descontado do total aplicado e do valor atual do produto.</p>
+                <div class="alert alert-warning small mt-3 mb-0 d-flex align-items-start">
+                    <i class="fa-solid fa-circle-info me-2 mt-1"></i>
+                    <span>Não é possível desfazer.</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnExcluirAporteAgora">
+                    <i class="fa-solid fa-trash me-2"></i>Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Excluir Rendimento (estilo igual ao de lançamentos) -->
+<div class="modal fade" id="modalExcluirRendimento" tabindex="-1" aria-labelledby="modalExcluirRendimentoTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger fw-semibold" id="modalExcluirRendimentoTitle">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Excluir rendimento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <input type="hidden" id="excluirRendimentoId">
+                <p class="mb-2">Tem certeza que deseja excluir este rendimento?</p>
+                <p class="text-muted small mb-0">O valor será revertido no valor atual do produto.</p>
+                <div class="alert alert-warning small mt-3 mb-0 d-flex align-items-start">
+                    <i class="fa-solid fa-circle-info me-2 mt-1"></i>
+                    <span>Não é possível desfazer.</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnExcluirRendimentoAgora">
+                    <i class="fa-solid fa-trash me-2"></i>Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('js') ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
     const PRODUTO_ID = <?= (int)($produtoId ?? 0) ?>;
 
@@ -321,19 +401,19 @@
         const totais = r.data?.Totais ?? {};
         window._cacheAportes = aportes;
         window._cacheRendimentos = rendimentos;
+        window._cacheTotais = totais;
 
         document.getElementById('produtoNome').textContent = prod.Nome || 'Produto';
         document.getElementById('produtoTipo').textContent = TIPO_LABELS[prod.TipoProduto] || prod.TipoProduto;
 
         document.getElementById('cardAplicado').textContent = Envelopei.money(totais.ValorAplicado);
         document.getElementById('cardAtual').textContent = Envelopei.money(totais.ValorAtual);
-        document.getElementById('cardVariacaoValor').textContent = (totais.Variacao >= 0 ? '+' : '') + Envelopei.money(totais.Variacao);
-        const pct = Number(totais.Percentual ?? 0);
-        document.getElementById('cardVariacaoPct').innerHTML = '<i class="fa-solid ' + pctIcon(pct) + ' me-1"></i><span class="' + pctClass(pct) + '">' + (pct >= 0 ? '+' : '') + pct + '%</span>';
-        const cardIcon = document.getElementById('cardVariacaoIcon');
-        const iconEl = document.getElementById('iconVariacao');
-        cardIcon.className = 'invest-icon-card bg-opacity-10 ' + (pct > 0 ? 'bg-success' : pct < 0 ? 'bg-danger' : 'bg-secondary');
-        iconEl.className = 'fa-solid fa-percent ' + (pct > 0 ? 'text-success' : pct < 0 ? 'text-danger' : 'text-secondary');
+        const totalRend = Number(totais.TotalRendimentos ?? 0);
+        document.getElementById('cardTotalRendimentosValor').textContent = (totalRend >= 0 ? '+' : '') + Envelopei.money(totalRend);
+        const cardIcon = document.getElementById('cardTotalRendimentosIcon');
+        const iconEl = document.getElementById('iconTotalRendimentos');
+        cardIcon.className = 'invest-icon-card bg-opacity-10 ' + (totalRend > 0 ? 'bg-success' : totalRend < 0 ? 'bg-danger' : 'bg-secondary');
+        iconEl.className = 'fa-solid fa-chart-line ' + (totalRend > 0 ? 'text-success' : totalRend < 0 ? 'text-danger' : 'text-secondary');
 
         // Aportes
         document.getElementById('totalAportesBadge').textContent = aportes.length;
@@ -356,7 +436,6 @@
 
         // Rendimentos
         document.getElementById('totalRendimentosBadge').textContent = rendimentos.length;
-        const totalRend = Number(totais.TotalRendimentos ?? 0);
         const footRend = document.getElementById('footTotalRendimentos');
         footRend.textContent = (totalRend >= 0 ? '+' : '') + Envelopei.money(totalRend);
         footRend.className = 'text-end ' + (totalRend >= 0 ? 'text-success' : 'text-danger');
@@ -378,6 +457,97 @@
                 </tr>`;
             }).join('');
         }
+
+        desenharGraficoEvolucao(aportes, rendimentos);
+    }
+
+    function desenharGraficoEvolucao(aportes, rendimentos) {
+        if (window._chartEvolucao) {
+            window._chartEvolucao.destroy();
+            window._chartEvolucao = null;
+        }
+
+        const eventos = [];
+        (aportes || []).forEach(function(a) {
+            eventos.push({ data: (a.DataAporte || '').toString().slice(0, 10), aplicado: Number(a.Valor), rendimento: 0 });
+        });
+        (rendimentos || []).forEach(function(r) {
+            eventos.push({ data: (r.DataRendimento || '').toString().slice(0, 10), aplicado: 0, rendimento: Number(r.Valor) });
+        });
+        eventos.sort(function(x, y) { return x.data.localeCompare(y.data); });
+
+        const labels = [];
+        const dadosAplicado = [];
+        const dadosAtual = [];
+        let acumAplicado = 0;
+        let acumRendimento = 0;
+
+        if (eventos.length === 0) {
+            const hoje = new Date().toISOString().slice(0, 10);
+            const tot = window._cacheTotais || {};
+            labels.push(Envelopei.dateBR(hoje));
+            dadosAplicado.push(Number(tot.ValorAplicado) || 0);
+            dadosAtual.push(Number(tot.ValorAtual) || 0);
+        } else {
+            eventos.forEach(function(ev) {
+                acumAplicado += ev.aplicado;
+                acumRendimento += ev.rendimento;
+                labels.push(Envelopei.dateBR(ev.data));
+                dadosAplicado.push(acumAplicado);
+                dadosAtual.push(acumAplicado + acumRendimento);
+            });
+        }
+
+        const ctx = document.getElementById('chartEvolucao');
+        if (!ctx || typeof Chart === 'undefined') return;
+
+        window._chartEvolucao = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Valor aplicado',
+                        data: dadosAplicado,
+                        borderColor: 'rgb(13, 110, 253)',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'Valor atual',
+                        data: dadosAtual,
+                        borderColor: 'rgb(25, 135, 84)',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        fill: true,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + Envelopei.money(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     function formatMoneySigned(num) {
@@ -388,10 +558,16 @@
         return neg ? '-' + s : s;
     }
 
-    document.getElementById('aporteData').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('rendData').value = new Date().toISOString().slice(0, 10);
+    function initProdutoPage() {
+        var elAporteData = document.getElementById('aporteData');
+        var elRendData = document.getElementById('rendData');
+        if (elAporteData) elAporteData.value = new Date().toISOString().slice(0, 10);
+        if (elRendData) elRendData.value = new Date().toISOString().slice(0, 10);
 
-    document.getElementById('btnSalvarAporte').addEventListener('click', async function() {
+        document.querySelectorAll('.input-valor-assinado').forEach(applySignedMoneyMask);
+
+        var btnSalvarAporte = document.getElementById('btnSalvarAporte');
+        if (btnSalvarAporte) btnSalvarAporte.addEventListener('click', async function() {
         const DataAporte = document.getElementById('aporteData').value;
         const Valor = Envelopei.parseMoney(document.getElementById('aporteValor').value);
         const Descricao = document.getElementById('aporteDesc').value.trim();
@@ -403,9 +579,10 @@
         document.getElementById('formAporte').reset();
         document.getElementById('aporteData').value = new Date().toISOString().slice(0, 10);
         carregarHistorico();
-    });
+        });
 
-    document.getElementById('btnSalvarRendimento').addEventListener('click', async function() {
+        var btnSalvarRendimento = document.getElementById('btnSalvarRendimento');
+        if (btnSalvarRendimento) btnSalvarRendimento.addEventListener('click', async function() {
         const DataRendimento = document.getElementById('rendData').value;
         const Valor = parseMoneySigned(document.getElementById('rendValor').value);
         const Descricao = document.getElementById('rendDesc').value.trim();
@@ -417,27 +594,82 @@
         document.getElementById('formRendimento').reset();
         document.getElementById('rendData').value = new Date().toISOString().slice(0, 10);
         carregarHistorico();
-    });
+        });
 
-    /** Máscara para valor com sinal (permite negativo). Detectar sinal ANTES de remover não-dígitos. */
+        var btnExcluirAporte = document.getElementById('btnExcluirAporteAgora');
+        if (btnExcluirAporte) btnExcluirAporte.addEventListener('click', async function() {
+            var aporteId = document.getElementById('excluirAporteId').value;
+            if (!aporteId) return;
+            var r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/aportes/' + aporteId, 'DELETE', {});
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao excluir.', 'danger');
+            Envelopei.toast('Aporte excluído.', 'success');
+            var modal = document.getElementById('modalExcluirAporte');
+            if (modal && bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide();
+            carregarHistorico();
+        });
+
+        var btnExcluirRendimento = document.getElementById('btnExcluirRendimentoAgora');
+        if (btnExcluirRendimento) btnExcluirRendimento.addEventListener('click', async function() {
+            var rendimentoId = document.getElementById('excluirRendimentoId').value;
+            if (!rendimentoId) return;
+            var r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/rendimentos/' + rendimentoId, 'DELETE', {});
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao excluir.', 'danger');
+            Envelopei.toast('Rendimento excluído.', 'success');
+            var modal = document.getElementById('modalExcluirRendimento');
+            if (modal && bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide();
+            carregarHistorico();
+        });
+
+        var btnAtualizarAporte = document.getElementById('btnAtualizarAporte');
+        if (btnAtualizarAporte) btnAtualizarAporte.addEventListener('click', async function() {
+            var aporteId = document.getElementById('editAporteId').value;
+            var DataAporte = document.getElementById('editAporteData').value;
+            var Valor = Envelopei.parseMoney(document.getElementById('editAporteValor').value);
+            var Descricao = document.getElementById('editAporteDesc').value.trim();
+            if (!Valor || Valor <= 0) return Envelopei.toast('Informe o valor do aporte.', 'danger');
+            var r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/aportes/' + aporteId, 'PUT', { DataAporte: DataAporte, Valor: Valor, Descricao: Descricao });
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao atualizar.', 'danger');
+            Envelopei.toast('Aporte atualizado!', 'success');
+            var modal = document.getElementById('modalEditarAporte');
+            if (modal && bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide();
+            carregarHistorico();
+        });
+
+        var btnAtualizarRendimento = document.getElementById('btnAtualizarRendimento');
+        if (btnAtualizarRendimento) btnAtualizarRendimento.addEventListener('click', async function() {
+            var rendimentoId = document.getElementById('editRendimentoId').value;
+            var DataRendimento = document.getElementById('editRendimentoData').value;
+            var Valor = parseMoneySigned(document.getElementById('editRendimentoValor').value);
+            var Descricao = document.getElementById('editRendimentoDesc').value.trim();
+            if (Valor === 0) return Envelopei.toast('Informe um valor (positivo ou negativo).', 'danger');
+            var r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/rendimentos/' + rendimentoId, 'PUT', { DataRendimento: DataRendimento, Valor: Valor, Descricao: Descricao });
+            if (!r || !r.success) return Envelopei.toast(r && r.message ? r.message : 'Falha ao atualizar.', 'danger');
+            Envelopei.toast('Rendimento atualizado!', 'success');
+            var modal = document.getElementById('modalEditarRendimento');
+            if (modal && bootstrap.Modal.getInstance(modal)) bootstrap.Modal.getInstance(modal).hide();
+            carregarHistorico();
+        });
+
+        carregarHistorico();
+    }
+
+    /** Máscara para valor com sinal (permite negativo). */
     function applySignedMoneyMask(input) {
         if (!input || input._signedMask) return;
         input._signedMask = true;
         input.setAttribute('inputmode', 'decimal');
         input.addEventListener('input', function() {
-            const raw = this.value;
-            const neg = raw.trim().startsWith('-');
-            let v = raw.replace(/^-/, '').replace(/\D/g, '');
+            var raw = this.value;
+            var neg = raw.trim().indexOf('-') === 0;
+            var v = raw.replace(/^-/, '').replace(/\D/g, '');
             if (v.length > 12) v = v.slice(0, 12);
             if (v.length === 0) { this.value = neg ? '-' : ''; return; }
-            const intRaw = v.length <= 2 ? '0' : v.slice(0, -2);
-            const intPart = intRaw.replace(/^0+/, '') || '0';
-            const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + v.slice(-2).padStart(2, '0');
+            var intRaw = v.length <= 2 ? '0' : v.slice(0, -2);
+            var intPart = intRaw.replace(/^0+/, '') || '0';
+            var formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + v.slice(-2).padStart(2, '0');
             this.value = (neg ? '-' : '') + formatted;
         });
     }
-
-    document.querySelectorAll('.input-valor-assinado').forEach(applySignedMoneyMask);
 
     window.abrirEditarAporte = function(aporteId) {
         const a = (window._cacheAportes || []).find(function(x) { return x.AporteId == aporteId; });
@@ -459,48 +691,16 @@
         new bootstrap.Modal(document.getElementById('modalEditarRendimento')).show();
     };
 
-    window.excluirAporte = async function(aporteId) {
-        if (!confirm('Excluir este aporte? O valor será descontado do total aplicado.')) return;
-        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/aportes/' + aporteId, 'DELETE', {});
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao excluir.', 'danger');
-        Envelopei.toast('Aporte excluído.', 'success');
-        carregarHistorico();
+    window.excluirAporte = function(aporteId) {
+        document.getElementById('excluirAporteId').value = aporteId;
+        new bootstrap.Modal(document.getElementById('modalExcluirAporte')).show();
     };
 
-    window.excluirRendimento = async function(rendimentoId) {
-        if (!confirm('Excluir este rendimento? O valor será revertido no valor atual.')) return;
-        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/rendimentos/' + rendimentoId, 'DELETE', {});
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao excluir.', 'danger');
-        Envelopei.toast('Rendimento excluído.', 'success');
-        carregarHistorico();
+    window.excluirRendimento = function(rendimentoId) {
+        document.getElementById('excluirRendimentoId').value = rendimentoId;
+        new bootstrap.Modal(document.getElementById('modalExcluirRendimento')).show();
     };
 
-    document.getElementById('btnAtualizarAporte').addEventListener('click', async function() {
-        const aporteId = document.getElementById('editAporteId').value;
-        const DataAporte = document.getElementById('editAporteData').value;
-        const Valor = Envelopei.parseMoney(document.getElementById('editAporteValor').value);
-        const Descricao = document.getElementById('editAporteDesc').value.trim();
-        if (!Valor || Valor <= 0) return Envelopei.toast('Informe o valor do aporte.', 'danger');
-        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/aportes/' + aporteId, 'PUT', { DataAporte, Valor, Descricao });
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao atualizar.', 'danger');
-        Envelopei.toast('Aporte atualizado!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('modalEditarAporte')).hide();
-        carregarHistorico();
-    });
-
-    document.getElementById('btnAtualizarRendimento').addEventListener('click', async function() {
-        const rendimentoId = document.getElementById('editRendimentoId').value;
-        const DataRendimento = document.getElementById('editRendimentoData').value;
-        const Valor = parseMoneySigned(document.getElementById('editRendimentoValor').value);
-        const Descricao = document.getElementById('editRendimentoDesc').value.trim();
-        if (Valor === 0) return Envelopei.toast('Informe um valor (positivo ou negativo).', 'danger');
-        const r = await Envelopei.api('api/investimentos/produtos/' + PRODUTO_ID + '/rendimentos/' + rendimentoId, 'PUT', { DataRendimento, Valor, Descricao });
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao atualizar.', 'danger');
-        Envelopei.toast('Rendimento atualizado!', 'success');
-        bootstrap.Modal.getInstance(document.getElementById('modalEditarRendimento')).hide();
-        carregarHistorico();
-    });
-
-    document.addEventListener('DOMContentLoaded', carregarHistorico);
+    document.addEventListener('DOMContentLoaded', initProdutoPage);
 </script>
 <?= $this->endSection() ?>

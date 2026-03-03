@@ -32,6 +32,13 @@ class EnvelopeiWeb extends BaseController
         return redirect()->to(base_url('login'));
     }
 
+    public function alterarSenha()
+    {
+        return $this->view('envelopei/auth/alterar_senha', [
+            'titulo' => 'Alterar senha - Envelopei',
+        ]);
+    }
+
     public function dashboard()
     {
         return $this->view('envelopei/dashboard/index', [
