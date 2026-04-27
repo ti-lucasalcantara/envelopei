@@ -198,7 +198,7 @@ $cor = $env['Cor'] ?? '';
                 e.preventDefault();
                 var id = this.getAttribute('data-id');
                 if (!id) return;
-                if (!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return;
+                if (!await Envelopei.confirmar('Excluir este lançamento? Esta ação não pode ser desfeita.')) return;
                 excluirLancamento(id);
             });
         });

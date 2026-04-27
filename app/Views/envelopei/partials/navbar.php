@@ -1,72 +1,21 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="<?= base_url('dashboard') ?>">
-            <i class="fa-solid fa-wallet me-2"></i> Envelopei
-        </a>
-
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navEnvelopei">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navEnvelopei">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('dashboard') ?>"><i class="fa-solid fa-chart-pie me-2"></i>Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('lancamentos') ?>"><i class="fa-solid fa-receipt me-2"></i>Lançamentos</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('faturas') ?>"><i class="fa-solid fa-file-invoice me-2"></i>Faturas</a>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('envelopes') ?>"><i class="fa-solid fa-inbox me-2"></i>Envelopes</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('contas') ?>"><i class="fa-solid fa-building-columns me-2"></i>Contas</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('cartoes') ?>"><i class="fa-solid fa-credit-card me-2"></i>Cartões</a>
-                </li>
-              
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('rateios') ?>">
-                        <i class="fa-solid fa-percent me-2"></i>Rateio Padrão
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="<?= base_url('investimentos') ?>">
-                        <i class="fa-solid fa-chart-line me-2"></i>Investimentos
-                    </a>
-                </li>
-
-            </ul>
-
-            <div class="d-flex gap-2 align-items-center">
-                <a class="btn btn-outline-light btn-sm" href="<?= base_url('alterar-senha') ?>">
-                    <i class="fa-solid fa-key me-2"></i>Alterar senha
-                </a>
-                <button class="btn btn-outline-light btn-sm" id="btnLogout">
-                    <i class="fa-solid fa-right-from-bracket me-2"></i>Sair
-                </button>
-            </div>
-        </div>
+<aside class="app-sidebar">
+    <div class="app-brand">
+        <i class="fa-solid fa-wallet"></i>
+        <span>Envelopei</span>
     </div>
-</nav>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('btnLogout');
-        if (!btn) return;
-
-        btn.addEventListener('click', async () => {
-            const r = await Envelopei.api('api/logout', 'POST', {});
-            if (r && r.success) {
-                window.location.href = "<?= base_url('login') ?>";
-            } else {
-                Envelopei.toast(r?.message ?? 'Falha ao sair.', 'danger');
-            }
-        });
-    });
-</script>
+    <nav class="app-menu">
+        <a class="<?= classe_menu_ativo('dashboard') ?>" href="<?= base_url('dashboard') ?>"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+        <a class="<?= classe_menu_ativo('contas') ?>" href="<?= base_url('contas') ?>"><i class="fa-solid fa-building-columns"></i> Contas</a>
+        <a class="<?= classe_menu_ativo('receitas') ?>" href="<?= base_url('receitas') ?>"><i class="fa-solid fa-arrow-trend-up"></i> Receitas</a>
+        <a class="<?= classe_menu_ativo('despesas') ?>" href="<?= base_url('despesas') ?>"><i class="fa-solid fa-arrow-trend-down"></i> Despesas</a>
+        <a class="<?= classe_menu_ativo('envelopes') ?>" href="<?= base_url('envelopes') ?>"><i class="fa-solid fa-envelopes-bulk"></i> Envelopes</a>
+        <a class="<?= classe_menu_ativo('rateios') ?>" href="<?= base_url('rateios') ?>"><i class="fa-solid fa-percent"></i> Regras de Rateio</a>
+        <a class="<?= classe_menu_ativo('cartoes') ?>" href="<?= base_url('cartoes') ?>"><i class="fa-solid fa-credit-card"></i> Cartões de Crédito</a>
+        <a class="<?= classe_menu_ativo('faturas') ?>" href="<?= base_url('faturas') ?>"><i class="fa-solid fa-file-invoice-dollar"></i> Faturas</a>
+        <a class="<?= classe_menu_ativo('investimentos') ?>" href="<?= base_url('investimentos') ?>"><i class="fa-solid fa-piggy-bank"></i> Investimentos</a>
+        <a class="<?= classe_menu_ativo('categorias') ?>" href="<?= base_url('categorias') ?>"><i class="fa-solid fa-tags"></i> Categorias</a>
+        <a class="<?= classe_menu_ativo('relatorios') ?>" href="<?= base_url('relatorios') ?>"><i class="fa-solid fa-chart-pie"></i> Relatórios</a>
+        <a class="<?= classe_menu_ativo('configuracoes') ?>" href="<?= base_url('configuracoes') ?>"><i class="fa-solid fa-gear"></i> Configurações</a>
+        <a href="<?= base_url('sair') ?>"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+    </nav>
+</aside>

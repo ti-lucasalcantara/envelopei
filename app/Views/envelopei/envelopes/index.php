@@ -1,197 +1,93 @@
 <?= $this->extend('envelopei/layouts/app') ?>
 
 <?= $this->section('content') ?>
-
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <div>
-        <h4 class="mb-0">Envelopes</h4>
-        <div class="text-muted">Crie, edite e organize seus envelopes</div>
-    </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEnvelope">
-        <i class="fa-solid fa-plus me-2"></i>Novo Envelope
-    </button>
+<?php
+$totalAlocado = array_sum(array_column($envelopes, 'SaldoAtual'));
+$semSaldo = array_filter($envelopes, fn($item) => (float) ($item['SaldoAtual'] ?? 0) == 0.0);
+?>
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-4"><div class="card card-resumo"><div class="card-body"><div class="text-muted">Total alocado</div><div class="h3"><?= moeda_br($totalAlocado) ?></div></div></div></div>
+    <div class="col-12 col-lg-4"><div class="card card-resumo"><div class="card-body"><div class="text-muted">Envelopes ativos</div><div class="h3"><?= count($envelopes) ?></div></div></div></div>
+    <div class="col-12 col-lg-4"><div class="card card-resumo"><div class="card-body"><div class="text-muted">Sem saldo</div><div class="h3"><?= count($semSaldo) ?></div></div></div></div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nome</th>
-                        <th>Status</th>
-                        <th class="text-end">Saldo</th>
-                        <th style="width:200px;"></th>
-                    </tr>
-                </thead>
-                <tbody id="tbEnvelopes">
-                    <tr><td colspan="4" class="text-center text-muted py-4">Carregando…</td></tr>
-                </tbody>
-            </table>
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>Novo envelope</strong>
+        <span class="text-muted small">Campos opcionais preservam a estrutura antiga</span>
+    </div>
+    <form method="post" action="<?= base_url('envelopes') ?>" class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-lg-3"><label class="form-label">Nome</label><input name="Nome" class="form-control" required></div>
+            <div class="col-12 col-lg-2"><label class="form-label">Conta</label><select name="ContaId" class="form-select"><option value="">Global</option><?php foreach ($contas as $conta): ?><option value="<?= $conta['ContaId'] ?>"><?= $conta['Nome'] ?></option><?php endforeach; ?></select></div>
+            <div class="col-12 col-lg-2"><label class="form-label">Meta</label><input name="MetaValor" class="form-control" inputmode="decimal" value="0,00"></div>
+            <div class="col-6 col-lg-1"><label class="form-label">Cor</label><input type="color" name="Cor" class="form-control form-control-color" value="#0d6efd"></div>
+            <div class="col-6 col-lg-2">
+                <label class="form-label">Ícone</label>
+                <input name="Icone" class="form-control" maxlength="8" value="📦">
+                <div class="form-text">Use Windows + .</div>
+            </div>
+            <div class="col-12 col-lg-2"><button class="btn btn-primary w-100" type="submit"><i class="fa-solid fa-plus me-1"></i> Criar</button></div>
+            <div class="col-12"><label class="form-label">Descrição</label><input name="Descricao" class="form-control"></div>
+        </div>
+    </form>
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#abaCards" type="button">Cards</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#abaGrafico" type="button">Gráfico</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#abaTabela" type="button">Tabela</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="abaCards">
+        <div class="row g-3">
+            <?php foreach ($envelopes as $envelope): ?>
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <?php $icone = str_starts_with((string) ($envelope['Icone'] ?? ''), 'fa-') ? '📦' : (($envelope['Icone'] ?? '') ?: '📦'); ?>
+                                    <div class="fw-bold"><span class="me-2" style="color: <?= $envelope['Cor'] ?? '#0d6efd' ?>"><?= $icone ?></span><?= $envelope['Nome'] ?></div>
+                                    <div class="text-muted small"><?= $envelope['ContaNome'] ?? 'Global' ?></div>
+                                </div>
+                                <span class="badge bg-success">Ativo</span>
+                            </div>
+                            <div class="h4 mt-3"><?= moeda_br($envelope['SaldoAtual']) ?></div>
+                            <div class="progress mb-2" style="height: 9px;"><div class="progress-bar" style="width: <?= $envelope['PercentualMeta'] ?>%; background: <?= $envelope['Cor'] ?? '#0d6efd' ?>"></div></div>
+                            <div class="d-flex justify-content-between text-muted small"><span>Meta <?= moeda_br($envelope['MetaValor'] ?? 0) ?></span><span><?= $envelope['PercentualMeta'] ?>%</span></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
-</div>
-
-<!-- MODAL CRIAR/EDITAR -->
-<div class="modal fade" id="modalEnvelope" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="envModalTitle">Novo Envelope</h5>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="envId">
-                <div class="mb-3">
-                    <label class="form-label">Nome</label>
-                    <input type="text" class="form-control" id="envNome">
-                </div>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <label class="form-label">Cor</label>
-                        <input type="color" class="form-control" id="envCor" placeholder="#0d6efd">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Ordem</label>
-                        <input type="number" class="form-control" id="envOrdem" placeholder="1">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" id="btnSalvarEnv">
-                    <i class="fa-solid fa-check me-2"></i>Salvar
-                </button>
-            </div>
-        </div>
+    <div class="tab-pane fade" id="abaGrafico">
+        <div class="card"><div class="card-body"><canvas id="graficoEnvelopes" height="100"></canvas></div></div>
+    </div>
+    <div class="tab-pane fade" id="abaTabela">
+        <div class="card"><div class="table-responsive"><table class="table align-middle mb-0">
+            <thead><tr><th>Nome</th><th>Conta</th><th class="text-end">Saldo</th><th class="text-end">Meta</th><th>Status</th></tr></thead>
+            <tbody><?php foreach ($envelopes as $envelope): ?><tr><td><?= $envelope['Nome'] ?></td><td><?= $envelope['ContaNome'] ?? 'Global' ?></td><td class="text-end"><?= moeda_br($envelope['SaldoAtual']) ?></td><td class="text-end"><?= moeda_br($envelope['MetaValor'] ?? 0) ?></td><td><span class="badge bg-success">Ativo</span></td></tr><?php endforeach; ?></tbody>
+        </table></div></div>
     </div>
 </div>
-
 <?= $this->endSection() ?>
 
 <?= $this->section('js') ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let envelopes = [];
-
-    async function carregar() {
-        const r = await Envelopei.api('api/envelopes?IncluirInativos=1', 'GET');
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao carregar.', 'danger');
-
-        envelopes = r.data ?? [];
-        render();
-    }
-
-    function render() {
-        const tb = document.getElementById('tbEnvelopes');
-
-        if (!envelopes.length) {
-            tb.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Nenhum envelope.</td></tr>`;
-            return;
-        }
-
-        tb.innerHTML = envelopes.map(e => {
-            const ativo = Number(e.Ativo) === 1;
-            const trClass = ativo ? '' : 'tr-marker-danger';
-            const cor = e.Cor ? `<span class="badge" style="background:${e.Cor};"> </span> <span class="text-mono small"></span>` : '-';
-            const statusBadge = ativo
-                ? '<span class="badge bg-light border border-success text-success small">Ativo</span>'
-                : '<span class="badge bg-light border border-danger text-danger small">Inativo</span>';
-            const botoes = ativo
-                ? `
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editar(${e.EnvelopeId})" title="Editar">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="desativar(${e.EnvelopeId})" title="Desativar">
-                        <i class="fa-solid fa-ban"></i> Desativar
-                    </button>
-                `
-                : `
-                    <button class="btn btn-sm btn-success" onclick="reativar(${e.EnvelopeId})" title="Reativar">
-                        <i class="fa-solid fa-rotate-right me-1"></i> Reativar
-                    </button>
-                `;
-            return `
-                <tr class="${trClass}">
-                    <td class="fw-semibold">${cor} ${e.Nome}</td>
-                    <td>${statusBadge}</td>
-                    <td class="text-end fw-semibold">${Envelopei.money(e.Saldo)}</td>
-                    <td class="text-end">${botoes}</td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    function editar(id) {
-        const e = envelopes.find(x => Number(x.EnvelopeId) === Number(id));
-        if (!e) return;
-
-        $('#envModalTitle').text('Editar Envelope');
-        $('#envId').val(e.EnvelopeId);
-        $('#envNome').val(e.Nome);
-        $('#envCor').val(e.Cor ?? '');
-        $('#envOrdem').val(e.Ordem ?? '');
-
-        new bootstrap.Modal(document.getElementById('modalEnvelope')).show();
-    }
-
-    async function desativar(id) {
-        if (!confirm('Desativar este envelope? Ele deixará de aparecer no dashboard.')) return;
-        const r = await Envelopei.api(`api/envelopes/${id}`, 'DELETE', {});
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao desativar.', 'danger');
-
-        Envelopei.toast('Envelope desativado.', 'success');
-        carregar();
-    }
-
-    async function reativar(id) {
-        const r = await Envelopei.api(`api/envelopes/${id}`, 'PUT', { Ativo: 1 });
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao reativar.', 'danger');
-
-        Envelopei.toast('Envelope reativado!', 'success');
-        carregar();
-    }
-
-    async function salvar() {
-        const EnvelopeId = Number($('#envId').val() || 0);
-        const Nome = $('#envNome').val().trim();
-        const Cor = $('#envCor').val().trim() || null;
-        const Ordem = $('#envOrdem').val() !== '' ? Number($('#envOrdem').val()) : null;
-
-        if (!Nome) return Envelopei.toast('Informe o nome.', 'danger');
-
-        let r;
-        if (!EnvelopeId) {
-            r = await Envelopei.api('api/envelopes', 'POST', { Nome, Cor, Ordem });
-        } else {
-            r = await Envelopei.api(`api/envelopes/${EnvelopeId}`, 'PUT', { Nome, Cor, Ordem });
-        }
-
-        if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao salvar.', 'danger');
-
-        bootstrap.Modal.getInstance(document.getElementById('modalEnvelope')).hide();
-        Envelopei.toast('Salvo com sucesso!', 'success');
-
-        // reset
-        $('#envId').val('');
-        $('#envNome').val('');
-        $('#envCor').val('');
-        $('#envOrdem').val('');
-
-        carregar();
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        carregar();
-
-        document.getElementById('btnSalvarEnv').addEventListener('click', salvar);
-
-        document.getElementById('modalEnvelope').addEventListener('hidden.bs.modal', () => {
-            $('#envModalTitle').text('Novo Envelope');
-            $('#envId').val('');
-            $('#envNome').val('');
-            $('#envCor').val('');
-            $('#envOrdem').val('');
-        });
+document.addEventListener('DOMContentLoaded', function () {
+    const envelopes = <?= json_encode($envelopes, JSON_UNESCAPED_UNICODE) ?>;
+    new Chart(document.getElementById('graficoEnvelopes'), {
+        type: 'pie',
+        data: {
+            labels: envelopes.map(item => item.Nome),
+            datasets: [{ data: envelopes.map(item => Number(item.SaldoAtual)), backgroundColor: envelopes.map(item => item.Cor || '#0d6efd') }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
     });
+});
 </script>
 <?= $this->endSection() ?>

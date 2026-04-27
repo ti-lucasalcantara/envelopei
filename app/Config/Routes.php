@@ -31,6 +31,38 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
 
     // Auth (web)
     $routes->get('login', 'EnvelopeiWeb::login');
+
+    // Paginas web refatoradas com CRUD tradicional.
+    $routes->group('', ['filter' => 'authEnvelopei'], function ($routes) {
+        $routes->get('dashboard', 'Painel\Financeiro::dashboard');
+        $routes->get('contas', 'Painel\Financeiro::contas');
+        $routes->get('contas/nova', 'Painel\Financeiro::novaConta');
+        $routes->post('contas', 'Painel\Financeiro::salvarConta');
+        $routes->get('contas/(:num)/editar', 'Painel\Financeiro::editarConta/$1');
+        $routes->post('contas/(:num)', 'Painel\Financeiro::atualizarConta/$1');
+        $routes->post('contas/(:num)/inativar', 'Painel\Financeiro::inativarConta/$1');
+        $routes->post('contas/(:num)/reativar', 'Painel\Financeiro::reativarConta/$1');
+        $routes->get('receitas', 'Painel\Financeiro::receitas');
+        $routes->get('receitas/nova', 'Painel\Financeiro::novaReceita');
+        $routes->get('receitas/(:num)/editar', 'Painel\Financeiro::editarReceita/$1');
+        $routes->post('receitas', 'Painel\Financeiro::salvarReceita');
+        $routes->post('receitas/(:num)', 'Painel\Financeiro::atualizarReceita/$1');
+        $routes->get('despesas', 'Painel\Financeiro::despesas');
+        $routes->get('despesas/nova', 'Painel\Financeiro::novaDespesa');
+        $routes->get('despesas/(:num)/editar', 'Painel\Financeiro::editarDespesa/$1');
+        $routes->post('despesas', 'Painel\Financeiro::salvarDespesa');
+        $routes->post('despesas/(:num)', 'Painel\Financeiro::atualizarDespesa/$1');
+        $routes->post('lancamentos/(:num)/inativar', 'Painel\Financeiro::inativarLancamento/$1');
+        $routes->post('lancamentos/(:num)/reativar', 'Painel\Financeiro::reativarLancamento/$1');
+        $routes->get('envelopes', 'Painel\Financeiro::envelopes');
+        $routes->post('envelopes', 'Painel\Financeiro::salvarEnvelope');
+        $routes->post('envelopes/(:num)', 'Painel\Financeiro::salvarEnvelope/$1');
+        $routes->get('categorias', 'Painel\Financeiro::categorias');
+        $routes->post('categorias', 'Painel\Financeiro::salvarCategoria');
+        $routes->post('categorias/(:num)', 'Painel\Financeiro::salvarCategoria/$1');
+        $routes->get('relatorios', 'Painel\Financeiro::dashboard');
+        $routes->get('configuracoes', 'Painel\Financeiro::dashboard');
+    });
     $routes->get('sair',  'EnvelopeiWeb::logout'); // opcional (se quiser botão por link)
 
     // Páginas protegidas (se quiser filtrar aqui também)

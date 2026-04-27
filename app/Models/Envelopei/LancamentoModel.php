@@ -13,9 +13,13 @@ class LancamentoModel extends BaseEnvelopeiModel
         'CartaoCreditoId',
         'FaturaId',
         'TipoLancamento',
+        'Ativo',
+        'RecebidoPago',
         'Descricao',
+        'Observacao',
         'DataLancamento',
         'DataCriacao',
+        'DataAtualizacao',
     ];
 
     public function listarPorPeriodo(int $usuarioId, string $dataInicio, string $dataFim): array

@@ -11,8 +11,11 @@ class CategoriaModel extends BaseEnvelopeiModel
         'UsuarioId',
         'Nome',
         'TipoCategoria',
+        'Cor',
+        'Icone',
         'Ativa',
         'DataCriacao',
+        'DataAtualizacao',
     ];
 
     public function listarAtivas(int $usuarioId): array

@@ -9,11 +9,17 @@ class EnvelopeModel extends BaseEnvelopeiModel
 
     protected $allowedFields = [
         'UsuarioId',
+        'ContaId',
         'Nome',
+        'Descricao',
+        'MetaValor',
+        'PercentualPadrao',
         'Cor',
+        'Icone',
         'Ordem',
         'Ativo',
         'DataCriacao',
+        'DataAtualizacao',
     ];
 
     public function listarAtivos(int $usuarioId): array

@@ -11,12 +11,15 @@ class FaturaModel extends BaseEnvelopeiModel
         'CartaoCreditoId',
         'MesReferencia',
         'AnoReferencia',
+        'DataFechamento',
         'DataVencimento',
         'ValorTotal',
+        'Status',
         'Pago',
         'DataPagamento',
         'ContaIdPagamento',
         'DataCriacao',
+        'DataAtualizacao',
     ];
 
     /**

@@ -14,10 +14,13 @@ class CartaoCreditoModel extends BaseEnvelopeiModel
         'Ultimos4Digitos',
         'DiaFechamento',
         'DiaVencimento',
+        'ContaIdPagamento',
         'Limite',
+        'LimiteDisponivel',
         'Cor',
         'Ativo',
         'DataCriacao',
+        'DataAtualizacao',
     ];
 
     public function listarAtivos(int $usuarioId): array

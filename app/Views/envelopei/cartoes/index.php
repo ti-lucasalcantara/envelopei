@@ -167,7 +167,7 @@
 
     async function desativar(id, ativo) {
         const acao = ativo ? 'Desativar' : 'Reativar';
-        if (!confirm(`${acao} este cartão?`)) return;
+        if (!await Envelopei.confirmar(`${acao} este cartão?`)) return;
 
         const r = await Envelopei.api(`api/cartoes-credito/${id}`, 'PUT', { Ativo: ativo ? 0 : 1 });
         if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha.', 'danger');

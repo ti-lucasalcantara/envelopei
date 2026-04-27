@@ -250,7 +250,7 @@ $faturaId = (int)($fatura['FaturaId'] ?? 0);
         btn.addEventListener('click', async function(e) {
             e.preventDefault();
             const pagId = this.dataset.pagId;
-            if (!pagId || !confirm('Desfazer este pagamento? O valor será devolvido à conta.')) return;
+            if (!pagId || !await Envelopei.confirmar('Desfazer este pagamento? O valor será devolvido à conta.')) return;
 
             const r = await Envelopei.api('api/faturas/item/pagamento/' + pagId + '/desfazer', 'POST', {});
             if (!r?.success) return Envelopei.toast(r?.message ?? 'Falha ao desfazer.', 'danger');
@@ -284,7 +284,7 @@ $faturaId = (int)($fatura['FaturaId'] ?? 0);
     });
 
     document.getElementById('btnDesfazer')?.addEventListener('click', async function() {
-        if (!confirm('Desfazer o pagamento desta fatura? Os valores serão devolvidos às contas que debitaram.')) return;
+        if (!await Envelopei.confirmar('Desfazer o pagamento desta fatura? Os valores serão devolvidos às contas que debitaram.')) return;
 
         const faturaId = this.dataset.faturaId;
         const r = await Envelopei.api('api/faturas/' + faturaId + '/desfazer', 'POST', {});

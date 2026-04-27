@@ -8,26 +8,27 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class AuthEnvelopeiFilter implements FilterInterface
 {
+    /**
+     * Valida a sessao do usuario e responde conforme o tipo da rota.
+     */
     public function before(RequestInterface $request, $arguments = null)
     {
-        // 1) Sessão
         $uid = session('UsuarioId');
         if (!empty($uid)) {
             return;
         }
 
-        // 2) Header (futuro app)
         $hid = $request->getHeaderLine('X-Usuario-Id');
         if (!empty($hid) && ctype_digit($hid)) {
-            // se quiser, pode popular a sessão aqui:
-            // session()->set('UsuarioId', (int)$hid);
             return;
         }
 
-        // Falhou: retorna JSON 401
-        $response = service('response');
+        $caminho = trim($request->getUri()->getPath(), '/');
+        if (!str_starts_with($caminho, 'api')) {
+            return redirect()->to(base_url('login'))->with('erro', 'Faça login para continuar.');
+        }
 
-        return $response
+        return service('response')
             ->setStatusCode(401)
             ->setJSON([
                 'success' => false,
@@ -35,8 +36,11 @@ class AuthEnvelopeiFilter implements FilterInterface
             ]);
     }
 
+    /**
+     * Nao executa nenhuma acao apos a resposta.
+     */
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        // nada
+        return null;
     }
 }

@@ -11,9 +11,11 @@ class ContaModel extends BaseEnvelopeiModel
         'UsuarioId',
         'Nome',
         'TipoConta',
+        'Banco',
         'SaldoInicial',
         'Ativa',
         'DataCriacao',
+        'DataAtualizacao',
     ];
 
     public function listarAtivas(int $usuarioId): array
