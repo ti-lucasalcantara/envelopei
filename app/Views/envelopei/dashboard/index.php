@@ -142,9 +142,12 @@
             const saldo = Number(e.Saldo ?? 0);
             const receitasMes = Number(e.ReceitasMes ?? 0);
             const despesasMes = Number(e.DespesasMes ?? 0);
+            const despesasPendentes = Number(e.DespesasPendentes ?? 0);
+            const saldoAposPagamento = Number(e.SaldoAposPagamento ?? 0);
             const cor = e.Cor ? `style="border-left:6px solid ${e.Cor};"` : '';
             const badge = saldo < 0 ? 'text-bg-danger' : 'text-bg-success';
             const saldoClasse = saldo < 0 ? 'text-danger' : 'text-dark';
+            const saldoAposClasse = saldoAposPagamento < 0 ? 'text-danger' : 'text-dark';
 
             return `
             <div class="col-12 col-md-6 col-lg-4">
@@ -167,6 +170,14 @@
                                 <div class="d-flex justify-content-between mt-1">
                                     <span class="text-muted">Despesas do mês</span>
                                     <span>${formatValor(despesasMes)}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span class="text-muted">Despesas pendentes</span>
+                                    <span>${formatValor(despesasPendentes)}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1 pt-1 border-top">
+                                    <span class="text-muted">Saldo após pagar pendentes</span>
+                                    <span class="fw-semibold ${saldoAposClasse}">${formatValor(saldoAposPagamento)}</span>
                                 </div>
                             </div>
                         </div>
